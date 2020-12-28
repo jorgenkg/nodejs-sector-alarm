@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.2](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.1...v2.0.2) (2020-12-28)
+
+
+### Bug Fixes
+
+* **configuration:** removed fake-timers prod dependency ([46d6fe3](https://github.com/jorgenkg/nodejs-sector-alarm/commit/46d6fe3169f78194d5367f314b13cedf485b07f2))
+
 ### [2.0.1](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.0...v2.0.1) (2020-12-28)
 
 
