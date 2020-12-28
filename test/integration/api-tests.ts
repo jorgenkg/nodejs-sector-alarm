@@ -33,8 +33,8 @@ test("When the credentials have expired, it should re-authenticate before sendin
     clock.setSystemTime(Date.now());
     await next();
   }) as Middleware<undefined>,
-  withMockedSectorApi({ ...defaults, clock: clock as FakeTimer.NodeClock }),
-  withApi({ ...defaults, clock: clock as FakeTimer.NodeClock }),
+  withMockedSectorApi({ ...defaults, clock: clock as unknown as typeof defaults.clock }),
+  withApi({ ...defaults, clock: clock as unknown as typeof defaults.clock }),
   async(api, t) => {
     await api.login();
     await clock.tickAsync("24:00:00");
@@ -44,8 +44,8 @@ test("When the credentials have expired, it should re-authenticate before sendin
 ));
 
 test("If the credentials have been revoked, it should re-authenticate before sending the request", compose(
-  withMockedSectorApi({ ...defaults, clock: clock as FakeTimer.NodeClock }, { expose: true }),
-  withApi({ ...defaults, clock: clock as FakeTimer.NodeClock }),
+  withMockedSectorApi({ ...defaults, clock: clock as unknown as typeof defaults.clock }, { expose: true }),
+  withApi({ ...defaults, clock: clock as unknown as typeof defaults.clock }),
   async(sector, api, t) => {
     await api.login();
     sector.invalidateCookie();

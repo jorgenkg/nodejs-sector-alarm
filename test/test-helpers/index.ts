@@ -1,5 +1,4 @@
 import { default as debug } from "debug";
-import fakeTimer, { NodeClock } from "@sinonjs/fake-timers";
 import type { Configuration } from "../../lib/config/default.js";
 
 export {
@@ -35,7 +34,13 @@ export const defaults: Configuration<true> = {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     error: (msg: string, obj?: Record<string, unknown>) => obj ? debug("sectoralarm:error")("%s %o", msg, obj) : debug("sectoralarm:error")("%s", msg),
   },
-  clock: fakeTimer.createClock(Date.now()) as NodeClock,
+  clock: {
+    setInterval,
+    setTimeout,
+    clearInterval,
+    clearTimeout,
+    Date,
+  },
   mockData: {
     PanelId: "123456789",
     ArmedStatus: "disarmed",

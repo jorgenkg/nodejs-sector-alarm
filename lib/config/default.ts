@@ -1,7 +1,4 @@
-/* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { default as debug, Debugger } from "debug";
-import { NodeClock } from "@sinonjs/fake-timers";
+import { default as debug } from "debug";
 
 export interface Configuration<Test extends boolean = false> {
   sectorAlarm: {
@@ -31,7 +28,7 @@ export interface Configuration<Test extends boolean = false> {
     setInterval: typeof setInterval;
     clearInterval: typeof clearInterval;
     Date: typeof Date;
-  } | NodeClock;
+  };
   mockData: Test extends false ? undefined : {
     PanelId: string;
     ArmedStatus: "disarmed" | "armed";
