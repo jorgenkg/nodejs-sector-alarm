@@ -170,7 +170,6 @@ export class SectorApi {
   public async setPanelSettings(
     panelId: string,
     displayName: string,
-    accountPassword: string,
     quickArm: boolean
   ): Promise<SetPanelResponse> {
     return this.httpRequest<SetPanelResponse>({
@@ -180,7 +179,7 @@ export class SectorApi {
         displayName,
         panelId: panelId,
         quickArm,
-        systemPassword: accountPassword,
+        systemPassword: this.password,
       }
     });
   }

@@ -85,7 +85,7 @@ test("It should support updating the settings of a panel", compose(
   withMockedSectorApi(defaults),
   withApi(defaults),
   async(api, t) => {
-    const setPanelSettingsResponse = await api.setPanelSettings(defaults.mockData.PanelId, defaults.mockData.displayName, defaults.mockData.password, true);
+    const setPanelSettingsResponse = await api.setPanelSettings(defaults.mockData.PanelId, defaults.mockData.displayName, true);
     t.equals(setPanelSettingsResponse, "success", "Expected to receive a 'success' reply");
   }
 ));
