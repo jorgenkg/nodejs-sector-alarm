@@ -3,7 +3,7 @@
 import { default as debug, Debugger } from "debug";
 import { NodeClock } from "@sinonjs/fake-timers";
 
-export interface Configuration {
+export interface Configuration<Test extends boolean = false> {
   sectorAlarm: {
     host: string;
     /** Only defined for tests */
@@ -32,6 +32,16 @@ export interface Configuration {
     clearInterval: typeof clearInterval;
     Date: typeof Date;
   } | NodeClock;
+  mockData: Test extends false ? undefined : {
+    PanelId: string;
+    ArmedStatus: "disarmed" | "armed";
+    UpdatedTermsRequired: boolean;
+    displayName: string;
+    quickArm: boolean;
+    panelCode: string;
+    userID: string;
+    password: string;
+  };
 }
 
 
@@ -65,5 +75,5 @@ export default {
     setInterval: global.setInterval,
     clearInterval: global.clearInterval,
     Date: Date
-  },
+  }
 } as Configuration;

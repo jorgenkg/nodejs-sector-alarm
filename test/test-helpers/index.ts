@@ -10,11 +10,11 @@ export {
 
 export { test, run } from "./test-fn.js";
 
-export const defaults: Configuration = {
+export const defaults: Configuration<true> = {
   sectorAlarm: {
     host: "http://localhost:8080/",
     port: 8080,
-    version: "v1_1_88",
+    version: "v1_1_97",
     endpoints: {
       login: "/User/Login",
       getPanelList: "/Panel/GetPanelList/",
@@ -35,5 +35,15 @@ export const defaults: Configuration = {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     error: (msg: string, obj?: Record<string, unknown>) => obj ? debug("sectoralarm:error")("%s %o", msg, obj) : debug("sectoralarm:error")("%s", msg),
   },
-  clock: fakeTimer.createClock(Date.now()) as NodeClock
+  clock: fakeTimer.createClock(Date.now()) as NodeClock,
+  mockData: {
+    PanelId: "123456789",
+    ArmedStatus: "disarmed",
+    UpdatedTermsRequired: false,
+    displayName: "Home alarm",
+    quickArm: false,
+    userID: "john@example.com",
+    password: "super-secret",
+    panelCode: "1234",
+  }
 };

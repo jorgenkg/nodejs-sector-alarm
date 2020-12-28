@@ -47,66 +47,43 @@ export const compose: TestSetup = (...composers: any[]) => {
   };
 };
 
-export function withApi(configuration: Configuration, {
-  email = "email",
-  password = "password",
+export function withApi(configuration: Configuration<true>, {
+  email,
+  password,
 }: {
   email?: string;
   password?: string;
-} = {
-  email: "email",
-  password: "password",
-}): Middleware<SectorApi> {
+} = {}): Middleware<SectorApi> {
   return async next => {
-    await next(new SectorApi(email, password, configuration));
+    await next(new SectorApi(
+      email || configuration.mockData.userID,
+      password || configuration.mockData.password,
+      configuration
+    ));
   };
 }
 
-export function withMockedSectorApi(
-  configuration: Configuration,
-  {
-    PanelId = "1234",
-    ArmedStatus = "disarmed",
-    UpdatedTermsRequired = false,
-    systemPassword = "foo",
-    displayName = "foo",
-    quickArm = false,
-    userID = "email",
-    password = "password",
-    panelCode = "baz",
-  }: {
-    PanelId?: string;
-    ArmedStatus?: "disarmed" | "armed";
-    UpdatedTermsRequired?: boolean;
-    systemPassword?: string;
-    displayName?: string;
-    quickArm?: boolean;
-    panelCode?: string;
-    /** An email address */
-    userID?: string;
-    password?: string;
-  } = {
-    PanelId: "123456",
-    ArmedStatus: "disarmed",
-    UpdatedTermsRequired: false,
-    systemPassword: "foo",
-    displayName: "foo",
-    panelCode: "baz",
-    quickArm: false,
-    userID: "email",
-    password: "password",
-  }
-): Middleware<undefined> {
-  class MockedSectorApi extends Koa {
+class MockedSectorApi extends Koa {
     private __RequestVerificationToken = crypto.randomBytes(8).toString("hex");
     private Login__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
     private ASPXAUTH = crypto.randomBytes(960).toString("hex");
+    private configuration: Configuration<true>;
 
-    constructor() {
+    constructor(config: Configuration<true>, {
+      PanelId,
+      ArmedStatus,
+      UpdatedTermsRequired,
+      displayName,
+      quickArm,
+      userID,
+      password,
+      panelCode,
+    }: Configuration<true>["mockData"]) {
       super();
+      this.configuration = config;
 
       this.use(
-        Route.get(configuration.sectorAlarm.endpoints.login, ctx => {
+        Route.get(this.configuration.sectorAlarm.endpoints.login, ctx => {
           ctx.cookies.set("__RequestVerificationToken", this.__RequestVerificationToken, { httpOnly: true });
           ctx.response.type = "html";
           ctx.response.body = `
@@ -262,8 +239,9 @@ export function withMockedSectorApi(
 
       this.use(Route.all("*", async(ctx, path, next: Koa.Next) => {
         if(ctx.cookies.get("__RequestVerificationToken") !== this.__RequestVerificationToken) {
-          ctx.response.status = 400;
-          ctx.response.body = { message: "The request cookies did not contain a valid __RequestVerificationToken" };
+          ctx.response.status = 401;
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          ctx.response.body = { message: `The request cookies did not contain a valid __RequestVerificationToken. Was '${ctx.cookies.get("__RequestVerificationToken")}', should be '${this.__RequestVerificationToken}'` };
           return;
         }
         await next();
@@ -272,7 +250,7 @@ export function withMockedSectorApi(
       this.use(bodyParser());
 
       this.use(
-        Route.post(configuration.sectorAlarm.endpoints.login, ctx => {
+        Route.post(this.configuration.sectorAlarm.endpoints.login, ctx => {
           if(ctx.request.headers["content-type"] !== "application/x-www-form-urlencoded") {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request sent data using the wrong content type" };
@@ -280,27 +258,28 @@ export function withMockedSectorApi(
           }
           else if(ctx.request.body.__RequestVerificationToken !== this.Login__RequestVerificationToken) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not present a valid __RequestVerificationToken for login" };
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            ctx.response.body = { message: `The request did not present a valid __RequestVerificationToken for login. Should be '${this.Login__RequestVerificationToken}', was: '${ctx.request.body.__RequestVerificationToken}'` };
             return;
           }
           else if(ctx.request.body.userID !== userID) {
             // The Sector API will return 200 OK with an error message, and without setting the ASPX cookie
             ctx.response.status = 200;
             ctx.response.body = { message: "The request did not present a valid userID/email" };
-            configuration.logger.warn("The request did not specify a valid userID/email");
+            this.configuration.logger.warn("The request did not specify a valid userID/email");
             return;
           }
           else if(ctx.request.body.password !== password) {
             // The Sector API will return 200 OK with an error message, and without setting the ASPX cookie
             ctx.response.status = 200;
             ctx.response.body = { message: "The request did not present a valid password" };
-            configuration.logger.warn("The request did not specify a valid password");
+            this.configuration.logger.warn("The request did not specify a valid password");
             return;
           }
           else {
             // Set the authentication cookie
             ctx.cookies.set(".ASPXAUTH", this.ASPXAUTH, {
-              expires: new Date(configuration.clock.Date.now() + TWENTY_MINUTES_MS),
+              expires: new Date(this.configuration.clock.Date.now() + TWENTY_MINUTES_MS),
               httpOnly: true
             });
 
@@ -314,35 +293,36 @@ export function withMockedSectorApi(
         if(ctx.cookies.get(".ASPXAUTH") !== this.ASPXAUTH) {
           ctx.response.status = 401;
           ctx.response.body = "Wrong or missing authentication cookie";
+          return;
         }
         await next();
       }));
 
       this.use(
-        Route.get(configuration.sectorAlarm.endpoints.getPanelList, ctx => {
+        Route.get(this.configuration.sectorAlarm.endpoints.getPanelList, ctx => {
           ctx.response.body = [{
             "PanelId": PanelId,
             "ArmedStatus": ArmedStatus,
             "PanelDisplayName": displayName,
             "StatusAnnex": "unknown",
-            "PanelTime": `/Date(${configuration.clock.Date.now()})/`,
+            "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
             "AnnexAvalible": false,
             "IVDisplayStatus": false,
             "DisplayWizard": false,
-            "BookedStartDate": `/Date(-${configuration.clock.Date.now()})/`,
-            "BookedEndDate": `/Date(-${configuration.clock.Date.now()})/`,
+            "BookedStartDate": `/Date(-${this.configuration.clock.Date.now()})/`,
+            "BookedEndDate": `/Date(-${this.configuration.clock.Date.now()})/`,
             "InstallationStatus": 3,
             "InstallationAddress": null,
             "WizardStep": 0,
             "AccessGroup": 1,
-            "SessionExpires": `/Date(${configuration.clock.Date.now() + 1000 * 60 * 24})/`,
+            "SessionExpires": `/Date(${this.configuration.clock.Date.now() + 1000 * 60 * 24})/`,
             "IsOnline": false
           }] as PanelListResponse;
         })
       );
 
       this.use(
-        Route.get(configuration.sectorAlarm.endpoints.getUserInfo, ctx => {
+        Route.get(this.configuration.sectorAlarm.endpoints.getUserInfo, ctx => {
           ctx.body = {
             "userNation": 2,
             "Roles": [
@@ -364,13 +344,13 @@ export function withMockedSectorApi(
       );
 
       this.use(
-        Route.post(configuration.sectorAlarm.endpoints.getOverview, ctx => {
+        Route.post(this.configuration.sectorAlarm.endpoints.getOverview, ctx => {
           if(ctx.request.body.PanelId !== PanelId) {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request did not present a valid PanelId" };
             return;
           }
-          else if(ctx.request.body.Version !== configuration.sectorAlarm.version) {
+          else if(ctx.request.body.Version !== this.configuration.sectorAlarm.version) {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request did not present a valid version number" };
             return;
@@ -398,17 +378,17 @@ export function withMockedSectorApi(
               "ArmedStatus": ArmedStatus,
               "PanelDisplayName": displayName,
               "StatusAnnex": "unknown",
-              "PanelTime": `/Date(${configuration.clock.Date.now()})/`,
+              "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
               "AnnexAvalible": false,
               "IVDisplayStatus": false,
               "DisplayWizard": false,
-              "BookedStartDate": `/Date(${configuration.clock.Date.now()})/`,
-              "BookedEndDate": `/Date(${configuration.clock.Date.now()})/`,
+              "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+              "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
               "InstallationStatus": 3,
               "InstallationAddress": null,
               "WizardStep": 0,
               "AccessGroup": 0,
-              "SessionExpires": `/Date(${configuration.clock.Date.now()})/`,
+              "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
               "IsOnline": false
             },
             "Locks": [],
@@ -446,13 +426,13 @@ export function withMockedSectorApi(
       );
 
       this.use(
-        Route.post(configuration.sectorAlarm.endpoints.getPanel, ctx => {
+        Route.post(this.configuration.sectorAlarm.endpoints.getPanel, ctx => {
           if(ctx.request.body.PanelId !== PanelId) {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request did not present a valid PanelId" };
             return;
           }
-          else if(ctx.request.body.Version !== configuration.sectorAlarm.version) {
+          else if(ctx.request.body.Version !== this.configuration.sectorAlarm.version) {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request did not present a valid version number" };
             return;
@@ -478,8 +458,8 @@ export function withMockedSectorApi(
             "DisplayName": "Display name foo",
             "InstallationAddress": null,
             "InstallationStatus": 3,
-            "BookedStartDate": `/Date(${configuration.clock.Date.now()})/`,
-            "BookedEndDate": `/Date(${configuration.clock.Date.now()})/`,
+            "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+            "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
             "PropertyContact": {
               "AppUserId": "123456",
               "FirstName": "John",
@@ -527,80 +507,205 @@ export function withMockedSectorApi(
       );
 
       this.use(
-        Route.post(configuration.sectorAlarm.endpoints.armPanel, ctx => {
+        Route.post(this.configuration.sectorAlarm.endpoints.armPanel, ctx => {
           if(!("ArmCmd" in ctx.request.body)) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not specify ArmCmd" };
+            ctx.response.body = { message: `The request did not specify ArmCmd: ${JSON.stringify(ctx.request.body)}` };
             return;
           }
           else if(!("HasLocks" in ctx.request.body)) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not specify HasLocks" };
+            ctx.response.body = { message: `The request did not specify HasLocks: ${JSON.stringify(ctx.request.body)}` };
             return;
           }
-          else if(ctx.request.body.PanelCode !== panelCode && quickArm !== true) {
+          else if(ctx.request.body.PanelCode === "" && quickArm !== true) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "The request specified an incorrect PanelCode" };
+            ctx.response.body = { message: `The request must specify a PanelCode when quick arm isn't enabled: ${JSON.stringify(ctx.request.body)}` };
+            return;
+          }
+          else if(ctx.request.body.PanelCode !== "" && ctx.request.body.PanelCode !== panelCode) {
+            ctx.response.status = 400;
+            ctx.response.body = { message: `The request did not specify the correct PanelCode ${panelCode}: ${JSON.stringify(ctx.request.body)}` };
             return;
           }
           else if(ctx.request.body.id !== PanelId) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "The request specified an incorrect panelID" };
+            ctx.response.body = { message: `The request specified an incorrect panelID: ${JSON.stringify(ctx.request.body)}` };
             return;
           }
 
-          ctx.body = {} as ArmPanelResponse;
+          if(ctx.request.body.ArmCmd === "Partial") {
+            ctx.body = {
+              "status": "success",
+              "message": null,
+              "time": null,
+              "user": null,
+              "panelData": {
+                "PanelId": PanelId,
+                "ArmedStatus": "partialarmed",
+                "PanelDisplayName": displayName,
+                "StatusAnnex": "unknown",
+                "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
+                "AnnexAvalible": false,
+                "IVDisplayStatus": false,
+                "DisplayWizard": false,
+                "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+                "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
+                "InstallationStatus": 3,
+                "InstallationAddress": null,
+                "WizardStep": 0,
+                "AccessGroup": 1,
+                "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
+                "IsOnline": true
+              },
+              "ReloadLocks": false
+            };
+          }
+          else if(ctx.request.body.ArmCmd === "Total") {
+            ctx.body = {
+              "status": "success",
+              "message": null,
+              "time": null,
+              "user": null,
+              "panelData": {
+                "PanelId": PanelId,
+                "ArmedStatus": "armed",
+                "PanelDisplayName": displayName,
+                "StatusAnnex": "unknown",
+                "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
+                "AnnexAvalible": false,
+                "IVDisplayStatus": false,
+                "DisplayWizard": false,
+                "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+                "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
+                "InstallationStatus": 3,
+                "InstallationAddress": null,
+                "WizardStep": 0,
+                "AccessGroup": 1,
+                "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
+                "IsOnline": true
+              },
+              "ReloadLocks": false
+            };
+          }
+          else if(ctx.request.body.ArmCmd === "Disarm") {
+            ctx.body = {
+              "status": "success",
+              "message": null,
+              "time": null,
+              "user": null,
+              "panelData": {
+                "PanelId": PanelId,
+                "ArmedStatus": "disarmed",
+                "PanelDisplayName": displayName,
+                "StatusAnnex": "unknown",
+                "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
+                "AnnexAvalible": false,
+                "IVDisplayStatus": false,
+                "DisplayWizard": false,
+                "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+                "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
+                "InstallationStatus": 3,
+                "InstallationAddress": null,
+                "WizardStep": 0,
+                "AccessGroup": 1,
+                "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
+                "IsOnline": true
+              },
+              "ReloadLocks": false
+            };
+          }
+          else {
+            throw new Error("Unrecognized ArmCmd");
+          }
         })
       );
 
       this.use(
-        Route.post(configuration.sectorAlarm.endpoints.setPanelSettings, ctx => {
-          if(ctx.request.body.PanelId !== PanelId) {
+        Route.post(this.configuration.sectorAlarm.endpoints.setPanelSettings, ctx => {
+          if(ctx.request.body.panelId !== PanelId) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not present a valid PanelId" };
+            ctx.response.body = { message: `The request did not present a valid PanelId: ${JSON.stringify(ctx.request.body)}` };
             return;
           }
-          else if(ctx.request.body.systemPassword !== systemPassword) {
+          else if(ctx.request.body.systemPassword !== password) {
             ctx.response.status = 403;
-            ctx.response.body = { message: "The request did not present a valid systemPassword" };
+            ctx.response.body = { message: `The request did not present a valid systemPassword: ${JSON.stringify(ctx.request.body)}` };
             return;
           }
           else if(!ctx.request.body.displayName === undefined) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not provide a value for [displayName]" };
+            ctx.response.body = { message: `The request did not provide a value for [displayName]: ${JSON.stringify(ctx.request.body)}` };
             return;
           }
           else if(ctx.request.body.quickArm === undefined) {
             ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not provide a value for [quickArm]" };
+            ctx.response.body = { message: `The request did not provide a value for [quickArm]: ${JSON.stringify(ctx.request.body)}` };
             return;
           }
 
-          ctx.body = "success" as SetPanelResponse;
+          ctx.body = JSON.stringify("success");
         })
       );
     }
+
+    public invalidateCookie() {
+      this.__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
+      this.Login__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
+      this.ASPXAUTH = crypto.randomBytes(960).toString("hex");
+    }
+}
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function withMockedSectorApi<T extends boolean = false>(
+  configuration: Configuration<true>,
+  { expose = false as T }: {expose?: T} = { expose: false as T }
+) {
+
+  if(expose) {
+    return (async next => {
+      const application = new MockedSectorApi(configuration, configuration.mockData);
+
+      const server = new http.Server(application.callback());
+
+      if(!configuration.sectorAlarm.port) {
+        throw new Error("[port] must be definde in tests");
+      }
+
+      await new Promise<void>(resolve => server.listen(configuration.sectorAlarm.port, resolve));
+
+      try {
+        await next(application);
+      }
+      catch(error) {
+        configuration.logger.error(util.inspect(error, false, null));
+      }
+      finally {
+        await new Promise(resolve => server.close(resolve));
+      }
+    }) as T extends true ? Middleware<MockedSectorApi> : never;
   }
+  else {
+    return (async next => {
+      const application = new MockedSectorApi(configuration, configuration.mockData);
 
-  return async next => {
-    const application = new MockedSectorApi();
+      const server = new http.Server(application.callback());
 
-    const server = new http.Server(application.callback());
+      if(!configuration.sectorAlarm.port) {
+        throw new Error("[port] must be definde in tests");
+      }
 
-    if(!configuration.sectorAlarm.port) {
-      throw new Error("[port] must be definde in tests");
-    }
+      await new Promise<void>(resolve => server.listen(configuration.sectorAlarm.port, resolve));
 
-    await new Promise<void>(resolve => server.listen(configuration.sectorAlarm.port, resolve));
-
-    try {
-      await next();
-    }
-    catch(error) {
-      configuration.logger.error(util.inspect(error, false, null));
-    }
-    finally {
-      await new Promise(resolve => server.close(resolve));
-    }
-  };
+      try {
+        await next();
+      }
+      catch(error) {
+        configuration.logger.error(util.inspect(error, false, null));
+      }
+      finally {
+        await new Promise(resolve => server.close(resolve));
+      }
+    }) as T extends true ? never : Middleware<undefined>;
+  }
 }

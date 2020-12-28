@@ -7,6 +7,10 @@
   "types": "dist/index.d.ts",
   "author": "Jørgen Grimnes",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jorgenkg/nodejs-sector-alarm.git"
+  },
   "scripts": {
     "test": "node --enable-source-maps --unhandled-rejections=strict dist/test/integration/index.js",
     "dist": "npx tsc --build tsconfig.json",
