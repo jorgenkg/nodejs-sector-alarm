@@ -134,4 +134,13 @@ test("It should not allow arming the alarm without specifying the panel code if 
   }
 ));
 
+test("It should support disarming the alarm", compose(
+  withMockedSectorApi(defaults),
+  withApi(defaults),
+  async(api, t) => {
+    await api.changeAlarmState(defaults.mockData.PanelId, "Disarm", defaults.mockData.panelCode);
+    t.pass("Expected the call not to throw");
+  }
+));
+
 

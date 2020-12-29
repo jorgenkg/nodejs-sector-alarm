@@ -25,25 +25,40 @@ export class SectorApi {
   }
 
   /** Send a REST request to the Sector API */
-  private async httpRequest<T>({
+  private async httpRequest<T, IsHtmlResponse extends boolean = false>({
     endpoint,
     method = "GET",
     body,
-    mayReturnHTML = false,
+    mayReturnHTML = false as IsHtmlResponse,
     isRetry = false
   }: {
     endpoint: Exclude<keyof Configuration["sectorAlarm"]["endpoints"], "login">;
     method?: "POST" | "GET";
     body?: Record<string, unknown>;
-    mayReturnHTML?: boolean;
+    mayReturnHTML?: IsHtmlResponse;
     isRetry?: boolean;
-  }): Promise<T> {
+  }): Promise<IsHtmlResponse extends true ? string : T> {
 
     if(isRetry || !this.sessionExpiresAt || (this.sessionExpiresAt.valueOf() - this.configuration.clock.Date.now()) < 1000 * 60) {
       await this.login();
     }
 
     const { sectorAlarm: { host, endpoints } } = this.configuration;
+
+    const headers = {
+      "Connection": "keep-alive",
+      "Pragma": "no-cache",
+      "Cache-Control": "no-cache",
+      "Accept": "application/json, text/plain, */*",
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36",
+      "Content-Type": "application/json;charset=UTF-8",
+      "Origin": "https://minside.sectoralarm.no",
+      "Sec-Fetch-Site": "same-origin",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Dest": "empty",
+      "Referer": "https://minside.sectoralarm.no/",
+      "Accept-Language": "nb,en-US;q=0.9,en;q=0.8",
+    };
 
     try {
       if(mayReturnHTML) {
@@ -52,9 +67,10 @@ export class SectorApi {
           {
             method,
             cookieJar: this.cookieJar,
-            json: body
+            json: body,
+            headers
           }
-        ).text() as unknown as T;
+        ).text() as IsHtmlResponse extends true ? string : never;
       }
       else {
         return await got(
@@ -62,13 +78,25 @@ export class SectorApi {
           {
             method,
             cookieJar: this.cookieJar,
-            json: body
+            json: body,
+            headers
           }
-        ).json<T>();
+        ).json();
       }
     }
     catch(error) {
-      if(error instanceof got.HTTPError && error.response.statusCode === 401 && !isRetry) {
+      if(
+        error instanceof got.HTTPError &&
+        error.response.statusCode === 401 &&
+        error.response.rawBody.toString().includes("ACCOUNT_LOCKED") // seems to be returned if the panel ID is invalid
+      ) {
+        throw new Error(`Authentication error (${method}). The panel ID might be incorrect. Body: ${error.response.rawBody.toString()}`);
+      }
+      else if(
+        error instanceof got.HTTPError &&
+        error.response.statusCode === 401 &&
+        !isRetry
+      ) {
         return await this.httpRequest({
           endpoint, method, body, mayReturnHTML, isRetry: true
         });
@@ -203,10 +231,10 @@ export class SectorApi {
       ArmCmd: command,
       HasLocks: false,
       id: panelId,
-      PanelCode: panel.QuickArmEnabled ? "" : panelCode,
+      PanelCode: panelCode ? panelCode : "",
     };
 
-    const response = await this.httpRequest<string>({
+    const response = await this.httpRequest<string, true>({
       endpoint: "armPanel",
       method: "POST",
       body: payload,
@@ -216,7 +244,13 @@ export class SectorApi {
     if(typeof response === "string" && response.includes("<!DOCTYPE html>")) {
       throw new Error("Communication error");
     }
-    else if((JSON.parse(response) as Exclude<SetPanelResponse, string>).status !== "success") {
+
+    const { status } = (JSON.parse(response) as Exclude<SetPanelResponse, string>);
+
+    if(status === "Something went wrong.") {
+      throw new Error(`An unknown error occurred at Sector Alarm API: '${status}'. The panel code might be incorrect.`);
+    }
+    else if(status !== "success") {
       throw Object.assign(new Error("Failed to change the alarm state"), { response });
     }
 

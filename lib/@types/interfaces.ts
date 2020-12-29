@@ -140,7 +140,7 @@ export type GetPanelResponse = {
 export type ArmPanelResponse = {
 
 };
-export type SetPanelResponse = string | {
+export type SetPanelResponse = {
   "status":"success",
   "message":null,
   "time":null,
@@ -163,5 +163,12 @@ export type SetPanelResponse = string | {
     "SessionExpires":string,
     "IsOnline":boolean
   },
+  "ReloadLocks":false
+} | {
+  "status":"Something went wrong.",
+  "message":null,
+  "time":null,
+  "user":null,
+  "panelData":null,
   "ReloadLocks":false
 };
