@@ -55,7 +55,7 @@ export type PanelOverviewResponse = {
       "Serial": "";
     };
     "PanelId": string;
-    "ArmedStatus": "armed" | "disarmed";
+    "ArmedStatus": "armed" | "disarmed" | "partialarmed";
     "PanelDisplayName": string;
     "StatusAnnex": "unknown";
     /** /Date(<epoch>)/ */
