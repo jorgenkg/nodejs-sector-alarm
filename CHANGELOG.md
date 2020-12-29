@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.3](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.2...v2.0.3) (2020-12-29)
+
+
+### Bug Fixes
+
+* add alarm status partialarmed to getPanelOverview response type ([429ac4d](https://github.com/jorgenkg/nodejs-sector-alarm/commit/429ac4d553f9eeabf8b5bb4ac9c5576a2e1e6bed))
+
 ### [2.0.2](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.1...v2.0.2) (2020-12-28)
 
 
