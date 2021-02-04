@@ -2,9 +2,9 @@ import { Configuration, default as DefaultConfiguration } from "./config/default
 import {
   GetPanelResponse, PanelListResponse, PanelOverviewResponse, SetPanelResponse, UserInfoResponse
 } from "./@types/interfaces";
+import { URL } from "url";
 import got from "got";
 import tough from "tough-cookie";
-import URL from "url";
 
 export class SectorApi {
   private VerificationTokenExtractorRegex = /name="__RequestVerificationToken" type="hidden" value="([^"]*)"/;
@@ -63,7 +63,7 @@ export class SectorApi {
     try {
       if(mayReturnHTML) {
         return await got(
-          URL.resolve(host, endpoints[endpoint]),
+          new URL(endpoints[endpoint], host),
           {
             method,
             cookieJar: this.cookieJar,
@@ -74,7 +74,7 @@ export class SectorApi {
       }
       else {
         return await got(
-          URL.resolve(host, endpoints[endpoint]),
+          new URL(endpoints[endpoint], host),
           {
             method,
             cookieJar: this.cookieJar,
@@ -120,7 +120,7 @@ export class SectorApi {
 
     // Make an initial GET request to receive a CSRF token from the Sector API
     const response = await got(
-      URL.resolve(host, login),
+      new URL(login, host),
       { method: "GET", cookieJar: this.cookieJar }
     ).text();
 
@@ -135,7 +135,7 @@ export class SectorApi {
 
     // Perform the actual login
     await got(
-      URL.resolve(host, login),
+      new URL(login, host),
       {
         method: "POST", cookieJar: this.cookieJar,
         form: {
