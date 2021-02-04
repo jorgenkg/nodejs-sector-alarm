@@ -26,6 +26,16 @@ const panelCode = 1234;
 await api.changeAlarmState(panelId, "Disarm", panelCode);
 ```
 
+## Debug logging
+
+This library uses `debug`. Enable all logs by:
+```bash
+DEBUG=sectoralarm:*
+```
+or limit the logs to a certain log level by specifying {debug, info, warn, error} e.g:
+```bash
+DEBUG=sectoralarm:warn,sectoralarm:error
+```
 
 ## API
 
