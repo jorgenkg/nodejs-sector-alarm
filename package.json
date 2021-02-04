@@ -1,6 +1,6 @@
 {
   "name": "nodejs-sector-alarm",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "NodeJS client for Sector Alarm",
   "private": false,
   "main": "dist/index.js",
@@ -14,8 +14,9 @@
   "scripts": {
     "test": "node --enable-source-maps --unhandled-rejections=strict dist/test/integration/index.js",
     "dist": "npx tsc --build tsconfig.json",
+    "clean": "rm -rf dist/",
     "postinstall": "npx patch-package",
-    "release": "npm run dist && standard-version -a"
+    "release": "npm run clean && npm run dist && npm run test && standard-version -a"
   },
   "dependencies": {
     "debug": "^4.3.1",
@@ -54,6 +55,7 @@
     "node": ">=12.0"
   },
   "files": [
-    "dist"
+    "dist/lib",
+    "dist/index.*"
   ]
 }

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.5](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.4...v2.0.5) (2021-02-04)
+
+
+### Bug Fixes
+
+* use the WHATWG replacement for URL.resolve ([0e922e5](https://github.com/jorgenkg/nodejs-sector-alarm/commit/0e922e5a647e6b1f54b01b35f0fb5fbc84ab9f0a))
+
 ### [2.0.4](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.3...v2.0.4) (2020-12-29)
 
 
