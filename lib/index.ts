@@ -97,6 +97,7 @@ export class SectorApi {
         error.response.statusCode === 401 &&
         !isRetry
       ) {
+        // The retrying the request will force a re-authentication which might resolve 401 errors.
         return await this.httpRequest({
           endpoint, method, body, mayReturnHTML, isRetry: true
         });
