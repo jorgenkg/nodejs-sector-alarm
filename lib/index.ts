@@ -1,10 +1,10 @@
 import { Configuration, default as DefaultConfiguration } from "./config/default.js";
-import {
-  GetPanelResponse, PanelListResponse, PanelOverviewResponse, SetPanelResponse, UserInfoResponse
-} from "./@types/interfaces";
 import { URL } from "url";
 import got from "got";
 import tough from "tough-cookie";
+import type {
+  GetPanelResponse, PanelListResponse, PanelOverviewResponse, SetPanelResponse, UserInfoResponse
+} from "./@types/interfaces";
 
 export class SectorApi {
   private VerificationTokenExtractorRegex = /name="__RequestVerificationToken" type="hidden" value="([^"]*)"/;
@@ -114,6 +114,11 @@ export class SectorApi {
     }
   }
 
+  /** Authenticate using the credentials specified in the constructor. The login flow emulates a user login and
+   * stores the authenticated cookie for subsequent API calls.
+   *
+   * This function is used internally and does not need to be called directly.
+  */
   public async login(): Promise<void> {
     await this.cookieJar.removeAllCookies();
 
@@ -160,6 +165,7 @@ export class SectorApi {
     this.configuration.logger.info("Successfully authenticated with the Sector API");
   }
 
+  /** Fetch details about the authenticated user. */
   public async getUserInfo(): Promise<UserInfoResponse> {
     return this.httpRequest<UserInfoResponse>({
       endpoint: "getUserInfo",
@@ -167,6 +173,7 @@ export class SectorApi {
     });
   }
 
+  /** Fetch a list of high level information about alarm panels. */
   public async getPanelList(): Promise<PanelListResponse> {
     return this.httpRequest<PanelListResponse>({
       endpoint: "getPanelList",
@@ -174,6 +181,7 @@ export class SectorApi {
     });
   }
 
+  /** Fetch details about an alarm panel such as supported features and attached sensors/devices. */
   public async getPanelOverview(panelId: string): Promise<PanelOverviewResponse> {
     return this.httpRequest<PanelOverviewResponse>({
       endpoint: "getOverview",
@@ -185,6 +193,7 @@ export class SectorApi {
     });
   }
 
+  /** Fetch details about the support features of an alarm panel. */
   public async getPanelDetails(panelId: string): Promise<GetPanelResponse> {
     return this.httpRequest<GetPanelResponse>({
       endpoint: "getPanel",
@@ -196,6 +205,7 @@ export class SectorApi {
     });
   }
 
+  /** Update the name and enable/disable the quick arm capability of an alarm panel. */
   public async setPanelSettings(
     panelId: string,
     displayName: string,
@@ -213,6 +223,8 @@ export class SectorApi {
     });
   }
 
+  /** Change the state of an alarm panel. The function returns once the alarm has confirmed the state change.
+   * The call throws if 1) the panel code is incorrect 2) the underlying API version has changed.  */
   public async changeAlarmState(panelId: string, command: "Disarm"|"Total"|"Partial", panelCode?: string): Promise<void> {
     if(command === "Disarm" && panelCode === undefined) {
       throw new Error("Panel code must be specified when disarming the alarm");
@@ -243,7 +255,7 @@ export class SectorApi {
     });
 
     if(typeof response === "string" && response.includes("<!DOCTYPE html>")) {
-      throw new Error("Communication error");
+      throw Object.assign(new Error("Communication error"), { response });
     }
 
     const { status } = (JSON.parse(response) as Exclude<SetPanelResponse, string>);
