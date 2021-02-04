@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "node --enable-source-maps --unhandled-rejections=strict dist/test/integration/index.js",
-    "dist": "npx tsc --build tsconfig.json",
+    "dist": "npx tsc -p tsconfig.json --inlineSourceMap false --inlineSources false",
     "clean": "rm -rf dist/",
     "postinstall": "npx patch-package",
     "release": "npm run clean && npm run dist && npm run test && standard-version -a"
