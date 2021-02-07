@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.6](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.5...v2.0.6) (2021-02-07)
+
+
+### Bug Fixes
+
+* bump sector api version number ([43d8c5a](https://github.com/jorgenkg/nodejs-sector-alarm/commit/43d8c5a60fbbdd8492defd03638d0e0953612202))
+
 ### [2.0.5](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.4...v2.0.5) (2021-02-04)
 
 
