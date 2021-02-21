@@ -13,7 +13,7 @@ export const defaults: Configuration<true> = {
   sectorAlarm: {
     host: "http://localhost:8080/",
     port: 8080,
-    version: "v1_1_97",
+    version: "v1_2_00",
     endpoints: {
       login: "/User/Login",
       getPanelList: "/Panel/GetPanelList/",

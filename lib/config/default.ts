@@ -45,7 +45,7 @@ export interface Configuration<Test extends boolean = false> {
 export default {
   sectorAlarm: {
     host: "https://minside.sectoralarm.no/",
-    version: "v1_1_99",
+    version: "v1_2_00",
     endpoints: {
       login: "/User/Login",
       getPanelList: "/Panel/GetPanelList/",
