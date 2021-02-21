@@ -1,6 +1,6 @@
 {
   "name": "nodejs-sector-alarm",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "NodeJS client for Sector Alarm",
   "private": false,
   "main": "dist/index.js",
