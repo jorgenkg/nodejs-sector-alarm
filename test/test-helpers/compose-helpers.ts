@@ -251,25 +251,31 @@ class MockedSectorApi extends Koa {
 
       this.use(
         Route.post(this.configuration.sectorAlarm.endpoints.login, ctx => {
+          const body = ctx.request.body as {
+            __RequestVerificationToken: string;
+            userID: string;
+            password: string;
+          };
+
           if(ctx.request.headers["content-type"] !== "application/x-www-form-urlencoded") {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request sent data using the wrong content type" };
             return;
           }
-          else if(ctx.request.body.__RequestVerificationToken !== this.Login__RequestVerificationToken) {
+          else if(body.__RequestVerificationToken !== this.Login__RequestVerificationToken) {
             ctx.response.status = 400;
             // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-            ctx.response.body = { message: `The request did not present a valid __RequestVerificationToken for login. Should be '${this.Login__RequestVerificationToken}', was: '${ctx.request.body.__RequestVerificationToken}'` };
+            ctx.response.body = { message: `The request did not present a valid __RequestVerificationToken for login. Should be '${this.Login__RequestVerificationToken}', was: '${body.__RequestVerificationToken}'` };
             return;
           }
-          else if(ctx.request.body.userID !== userID) {
+          else if(body.userID !== userID) {
             // The Sector API will return 200 OK with an error message, and without setting the ASPX cookie
             ctx.response.status = 200;
             ctx.response.body = { message: "The request did not present a valid userID/email" };
             this.configuration.logger.warn("The request did not specify a valid userID/email");
             return;
           }
-          else if(ctx.request.body.password !== password) {
+          else if(body.password !== password) {
             // The Sector API will return 200 OK with an error message, and without setting the ASPX cookie
             ctx.response.status = 200;
             ctx.response.body = { message: "The request did not present a valid password" };
@@ -345,12 +351,17 @@ class MockedSectorApi extends Koa {
 
       this.use(
         Route.post(this.configuration.sectorAlarm.endpoints.getOverview, ctx => {
-          if(ctx.request.body.PanelId !== PanelId) {
+          const body = ctx.request.body as {
+            PanelId: string;
+            Version: string;
+          };
+
+          if(body.PanelId !== PanelId) {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request did not present a valid PanelId" };
             return;
           }
-          else if(ctx.request.body.Version !== this.configuration.sectorAlarm.version) {
+          else if(body.Version !== this.configuration.sectorAlarm.version) {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request did not present a valid version number" };
             return;
@@ -427,14 +438,11 @@ class MockedSectorApi extends Koa {
 
       this.use(
         Route.post(this.configuration.sectorAlarm.endpoints.getPanel, ctx => {
-          if(ctx.request.body.PanelId !== PanelId) {
+          const body = ctx.request.body as GetPanelResponse;
+
+          if(body.PanelId !== PanelId) {
             ctx.response.status = 400;
             ctx.response.body = { message: "The request did not present a valid PanelId" };
-            return;
-          }
-          else if(ctx.request.body.Version !== this.configuration.sectorAlarm.version) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not present a valid version number" };
             return;
           }
 
@@ -508,33 +516,40 @@ class MockedSectorApi extends Koa {
 
       this.use(
         Route.post(this.configuration.sectorAlarm.endpoints.armPanel, ctx => {
-          if(!("ArmCmd" in ctx.request.body)) {
+          const body = ctx.request.body as {
+            ArmCmd: "Disarm"|"Total"|"Partial",
+            HasLocks: false,
+            id: string,
+            PanelCode: string,
+          };
+
+          if(!("ArmCmd" in body)) {
             ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not specify ArmCmd: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request did not specify ArmCmd: ${JSON.stringify(body)}` };
             return;
           }
-          else if(!("HasLocks" in ctx.request.body)) {
+          else if(!("HasLocks" in body)) {
             ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not specify HasLocks: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request did not specify HasLocks: ${JSON.stringify(body)}` };
             return;
           }
-          else if(ctx.request.body.PanelCode === "" && quickArm !== true) {
+          else if(body.PanelCode === "" && quickArm !== true) {
             ctx.response.status = 400;
-            ctx.response.body = { message: `The request must specify a PanelCode when quick arm isn't enabled: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request must specify a PanelCode when quick arm isn't enabled: ${JSON.stringify(body)}` };
             return;
           }
-          else if(ctx.request.body.PanelCode !== "" && ctx.request.body.PanelCode !== panelCode) {
+          else if(body.PanelCode !== "" && body.PanelCode !== panelCode) {
             ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not specify the correct PanelCode ${panelCode}: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request did not specify the correct PanelCode ${panelCode}: ${JSON.stringify(body)}` };
             return;
           }
-          else if(ctx.request.body.id !== PanelId) {
+          else if(body.id !== PanelId) {
             ctx.response.status = 400;
-            ctx.response.body = { message: `The request specified an incorrect panelID: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request specified an incorrect panelID: ${JSON.stringify(body)}` };
             return;
           }
 
-          if(ctx.request.body.ArmCmd === "Partial") {
+          if(body.ArmCmd === "Partial") {
             ctx.body = {
               "status": "success",
               "message": null,
@@ -561,7 +576,7 @@ class MockedSectorApi extends Koa {
               "ReloadLocks": false
             };
           }
-          else if(ctx.request.body.ArmCmd === "Total") {
+          else if(body.ArmCmd === "Total") {
             ctx.body = {
               "status": "success",
               "message": null,
@@ -588,7 +603,7 @@ class MockedSectorApi extends Koa {
               "ReloadLocks": false
             };
           }
-          else if(ctx.request.body.ArmCmd === "Disarm") {
+          else if(body.ArmCmd === "Disarm") {
             ctx.body = {
               "status": "success",
               "message": null,
@@ -623,24 +638,31 @@ class MockedSectorApi extends Koa {
 
       this.use(
         Route.post(this.configuration.sectorAlarm.endpoints.setPanelSettings, ctx => {
-          if(ctx.request.body.panelId !== PanelId) {
+          const body = ctx.request.body as {
+            displayName?: string,
+            panelId?: string,
+            quickArm?: boolean,
+            systemPassword?: string
+          };
+
+          if(body.panelId !== PanelId) {
             ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not present a valid PanelId: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request did not present a valid PanelId: ${JSON.stringify(body)}` };
             return;
           }
-          else if(ctx.request.body.systemPassword !== password) {
+          else if(body.systemPassword !== password) {
             ctx.response.status = 403;
-            ctx.response.body = { message: `The request did not present a valid systemPassword: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request did not present a valid systemPassword: ${JSON.stringify(body)}` };
             return;
           }
-          else if(!ctx.request.body.displayName === undefined) {
+          else if(!body.displayName === undefined) {
             ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not provide a value for [displayName]: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request did not provide a value for [displayName]: ${JSON.stringify(body)}` };
             return;
           }
-          else if(ctx.request.body.quickArm === undefined) {
+          else if(body.quickArm === undefined) {
             ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not provide a value for [quickArm]: ${JSON.stringify(ctx.request.body)}` };
+            ctx.response.body = { message: `The request did not provide a value for [quickArm]: ${JSON.stringify(body)}` };
             return;
           }
 
