@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: "daily"
     commit-message:
-      prefix: "chore(deps):"
+      prefix: "chore:"
     versioning-strategy: increase
     allow:
       - dependency-type: "all"
@@ -14,6 +14,6 @@ updates:
     schedule:
       interval: "daily"
     commit-message:
-      prefix: "chore(gh actions):"
+      prefix: "chore:"
     allow:
       - dependency-type: "all"
