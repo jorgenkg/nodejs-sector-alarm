@@ -5,6 +5,8 @@ on:
     branches: [ master ]
     paths-ignore:
       - 'CHANGELOG.md'
+      - docs
+      - example
   workflow_dispatch:
 
 jobs:
