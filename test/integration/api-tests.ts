@@ -1,12 +1,12 @@
+import * as FakeTimer from "@sinonjs/fake-timers";
+import * as test from "tape";
 import {
   compose,
   defaults,
-  test,
   withApi,
   withMockedSectorApi
 } from "../test-helpers/index.js";
 import { Middleware } from "../test-helpers/compose-types.js";
-import FakeTimer from "@sinonjs/fake-timers";
 
 const clock = FakeTimer.createClock(0, Infinity);
 

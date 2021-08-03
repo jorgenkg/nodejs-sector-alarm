@@ -7,7 +7,6 @@ export {
   withApi
 } from "./compose-helpers.js";
 
-export { test, run } from "./test-fn.js";
 
 export const defaults: Configuration<true> = {
   sectorAlarm: {

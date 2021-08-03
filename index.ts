@@ -1,1 +1,1 @@
-export { SectorApi } from "./lib/index.js";
+export { SectorApi } from "./lib/SectorApi.js";

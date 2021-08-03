@@ -1,16 +1,26 @@
+import * as tough from "tough-cookie";
 import { Configuration, default as DefaultConfiguration } from "./config/default.js";
+import { deepMerge } from "./misc/deepMerge.js";
+import { GetPanelResponse } from "./@types/GetPanelResponse";
+import { PanelListResponse } from "./@types/PanelListResponse";
+import { PanelOverviewResponse } from "./@types/PanelOverviewResponse";
+import { SetPanelResponse } from "./@types/SetPanelResponse";
 import { URL } from "url";
+import { UserInfoResponse } from "./@types/UserInfoResponse";
 import got from "got";
-import tough from "tough-cookie";
-import type {
-  GetPanelResponse, PanelListResponse, PanelOverviewResponse, SetPanelResponse, UserInfoResponse
-} from "./@types/interfaces";
 
-export class SectorApi {
+
+/**
+ * SDK class that expose the Sector Alarm API.
+ *
+ * Note that `login()` does not need to be called explicitly.
+ * The SDK will lazily call `login()` to (re)authenticate when necessary.
+ */
+export class SectorApi<Test extends boolean = false> {
   private VerificationTokenExtractorRegex = /name="__RequestVerificationToken" type="hidden" value="([^"]*)"/;
   private sessionExpiresAt?: Date;
 
-  private configuration: Configuration<true> | Configuration<false>;
+  private configuration: Configuration<Test>;
 
   /** Contains an authentication cookie */
   private cookieJar = new tough.CookieJar();
@@ -18,19 +28,16 @@ export class SectorApi {
   private email: string;
   private password: string;
 
-  constructor(email: string, password: string, _configuration?: Configuration<true> | Configuration<false>) {
-    this.configuration = { ...DefaultConfiguration, ..._configuration };
+  /** The generic type parameter should be either omitted or `false` in production. */
+  constructor(email: string, password: string, configuration?: Configuration<Test>) {
+    this.configuration = (!configuration ? DefaultConfiguration : deepMerge(DefaultConfiguration, configuration)) as Configuration<Test>;
     this.email = email;
     this.password = password;
   }
 
   /** Send a REST request to the Sector API */
   private async httpRequest<T, IsHtmlResponse extends boolean = false>({
-    endpoint,
-    method = "GET",
-    body,
-    mayReturnHTML = false as IsHtmlResponse,
-    isRetry = false
+    endpoint, method = "GET", body, mayReturnHTML = false as IsHtmlResponse, isRetry = false
   }: {
     endpoint: Exclude<keyof Configuration["sectorAlarm"]["endpoints"], "login">;
     method?: "POST" | "GET";
@@ -39,7 +46,7 @@ export class SectorApi {
     isRetry?: boolean;
   }): Promise<IsHtmlResponse extends true ? string : T> {
 
-    if(isRetry || !this.sessionExpiresAt || (this.sessionExpiresAt.valueOf() - this.configuration.clock.Date.now()) < 1000 * 60) {
+    if (isRetry || !this.sessionExpiresAt || (this.sessionExpiresAt.valueOf() - this.configuration.clock.Date.now()) < 1000 * 60) {
       await this.login();
     }
 
@@ -61,7 +68,7 @@ export class SectorApi {
     };
 
     try {
-      if(mayReturnHTML) {
+      if (mayReturnHTML) {
         return await got(
           new URL(endpoints[endpoint], host),
           {
@@ -84,28 +91,25 @@ export class SectorApi {
         ).json();
       }
     }
-    catch(error) {
-      if(
-        error instanceof got.HTTPError &&
+    catch (error) {
+      if (error instanceof got.HTTPError &&
         error.response.statusCode === 401 &&
         error.response.rawBody.toString().includes("ACCOUNT_LOCKED") // seems to be returned if the panel ID is invalid
       ) {
         throw new Error(`Authentication error (${method}). The panel ID might be incorrect. Body: ${error.response.rawBody.toString()}`);
       }
-      else if(
-        error instanceof got.HTTPError &&
+      else if (error instanceof got.HTTPError &&
         error.response.statusCode === 401 &&
-        !isRetry
-      ) {
+        !isRetry) {
         // The retrying the request will force a re-authentication which might resolve 401 errors.
         return await this.httpRequest({
           endpoint, method, body, mayReturnHTML, isRetry: true
         });
       }
-      else if(error instanceof got.HTTPError && error.response.statusCode === 426) {
+      else if (error instanceof got.HTTPError && error.response.statusCode === 426) {
         throw new Error("Sector API version updated and no longer compatible");
       }
-      else if(error instanceof got.HTTPError) {
+      else if (error instanceof got.HTTPError) {
         throw new Error(`HTTP error ${method} ${endpoint}: ${error.response.statusCode} ${error.response.rawBody.toString()}`);
       }
       else {
@@ -133,7 +137,7 @@ export class SectorApi {
     // Use regex to find the CSRF token in the HTML web page
     const match = this.VerificationTokenExtractorRegex.exec(response);
 
-    if(match === null || match.length !== 2) {
+    if (match === null || match.length !== 2) {
       throw new Error("Couldn't find the login __RequestVerificationToken");
     }
 
@@ -157,7 +161,7 @@ export class SectorApi {
     const [aspxCookie] = (await this.cookieJar.getCookies(host))
       .filter(cookie => cookie.key === ".ASPXAUTH");
 
-    if(!aspxCookie) {
+    if (!aspxCookie) {
       throw new Error("Wrong email or password");
     }
 
@@ -225,18 +229,18 @@ export class SectorApi {
 
   /** Change the state of an alarm panel. The function returns once the alarm has confirmed the state change.
    * The call throws if 1) the panel code is incorrect 2) the underlying API version has changed.  */
-  public async changeAlarmState(panelId: string, command: "Disarm"|"Total"|"Partial", panelCode?: string): Promise<void> {
-    if(command === "Disarm" && panelCode === undefined) {
+  public async changeAlarmState(panelId: string, command: "Disarm" | "Total" | "Partial", panelCode?: string): Promise<void> {
+    if (command === "Disarm" && panelCode === undefined) {
       throw new Error("Panel code must be specified when disarming the alarm");
     }
 
     const panel = await this.getPanelDetails(panelId);
 
-    if(command === "Partial" && !panel.CanPartialArm) {
+    if (command === "Partial" && !panel.CanPartialArm) {
       throw new Error("Partial arming not supported");
     }
 
-    if(panelCode === undefined && !panel.QuickArmEnabled) {
+    if (panelCode === undefined && !panel.QuickArmEnabled) {
       throw new Error("Quick arming not enabled");
     }
 
@@ -254,16 +258,16 @@ export class SectorApi {
       mayReturnHTML: true
     });
 
-    if(typeof response === "string" && response.includes("<!DOCTYPE html>")) {
+    if (typeof response === "string" && response.includes("<!DOCTYPE html>")) {
       throw Object.assign(new Error("Communication error"), { response });
     }
 
     const { status } = (JSON.parse(response) as Exclude<SetPanelResponse, string>);
 
-    if(status === "Something went wrong.") {
+    if (status === "Something went wrong.") {
       throw new Error(`An unknown error occurred at Sector Alarm API: '${status}'. The panel code might be incorrect.`);
     }
-    else if(status !== "success") {
+    else if (status !== "success") {
       throw Object.assign(new Error("Failed to change the alarm state"), { response });
     }
 

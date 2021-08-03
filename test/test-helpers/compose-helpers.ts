@@ -1,48 +1,39 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { SectorApi } from "../../lib/index.js";
-import crypto from "crypto";
-import http from "http";
-import Koa from "koa";
-import Route from "koa-route";
-import tape from "tape";
-import util from "util";
-
-import {
-  ArmPanelResponse, GetPanelResponse, PanelListResponse, PanelOverviewResponse, SetPanelResponse, UserInfoResponse
-} from "../../lib/@types/interfaces";
-import { Middleware, TestSetup } from "./compose-types.js";
-import bodyParser from "koa-bodyparser";
+import * as bodyParser from "koa-bodyparser";
+import * as crypto from "crypto";
+import * as http from "http";
+import * as Koa from "koa";
+import * as Route from "koa-route";
+import * as tape from "tape";
+import * as util from "util";
+import { GetPanelResponse } from "../../lib/@types/GetPanelResponse";
+import { Middleware, TestComposer } from "./compose-types.js";
+import { PanelListResponse } from "../../lib/@types/PanelListResponse";
+import { PanelOverviewResponse } from "../../lib/@types/PanelOverviewResponse";
+import { SectorApi } from "../../lib/SectorApi";
+import { UserInfoResponse } from "../../lib/@types/UserInfoResponse";
 import type { Configuration } from "../../lib/config/default.js";
 
 const TWENTY_MINUTES_MS = 1000 * 60 * 20;
 
-export const compose: TestSetup = (...composers: any[]) => {
-  const test = composers.pop() as (...args: any[]) => Promise<void>;
+
+export const compose: TestComposer = (...composers: unknown[]) => {
+  const test = composers.pop() as (...args: unknown[]) => Promise<void>;
   const results: unknown[] = [];
 
   return async function _compose(t: tape.Test): Promise<void> {
-    try {
-      if (composers.length === 0) {
-        await test(...results, t);
-      }
-      else {
-        const middleware = composers.shift() as Middleware<unknown>; // leftmost middleware
-        await middleware(
-          // await the 'next' function
-          async(result: unknown) => {
-            if(result !== undefined) {
-              results.push(result);
-            }
-
-            await _compose(t);
-          }
-        );
-      }
+    if (composers.length === 0) {
+      await test(...results, t);
     }
-    catch(err) {
-      // eslint-disable-next-line no-console
-      console.error(err);
-      process.exit(1);
+    else {
+      const middleware = composers.shift() as Middleware<unknown>; // leftmost middleware
+      await middleware(
+        async(result: unknown) => {
+          if(result !== undefined) {
+            results.push(result);
+          }
+          await _compose(t);
+        }
+      );
     }
   };
 };
@@ -53,7 +44,7 @@ export function withApi(configuration: Configuration<true>, {
 }: {
   email?: string;
   password?: string;
-} = {}): Middleware<SectorApi> {
+} = {}): Middleware<SectorApi<true>> {
   return async next => {
     await next(new SectorApi(
       email || configuration.mockData.userID,
