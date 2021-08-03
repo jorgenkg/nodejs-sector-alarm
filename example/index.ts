@@ -9,6 +9,6 @@ import { SectorApi } from "../lib/SectorApi.js";
   const api = new SectorApi(process.env.EMAIL, process.env.PASSWORD);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const vehicles: PanelListResponse = await api.getPanelList();
+  const alarmPanels: PanelListResponse = await api.getPanelList();
 })()
   .catch(console.error);
