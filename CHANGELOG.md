@@ -2,13 +2,6 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-### [2.0.9](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.8...v2.0.9) (2021-08-03)
-
-
-### Bug Fixes
-
-* upgrade dependencies ([6fb3e80](https://github.com/jorgenkg/nodejs-sector-alarm/commit/6fb3e80d40e400817ce3c53691731ba7b05f0c76))
-
 ### [2.0.8](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.7...v2.0.8) (2021-02-21)
 
 ### [2.0.7](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.6...v2.0.7) (2021-02-21)
