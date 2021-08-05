@@ -30,7 +30,7 @@
     "@types/debug": "4.1.7",
     "@types/got": "9.6.12",
     "@types/koa": "2.13.4",
-    "@types/koa-bodyparser": "4.3.2",
+    "@types/koa-bodyparser": "4.3.3",
     "@types/koa-route": "3.2.4",
     "@types/node": "16.4.10",
     "@types/tape": "4.13.2",
