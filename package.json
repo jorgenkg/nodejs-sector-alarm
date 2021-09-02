@@ -40,7 +40,7 @@
     "commitlint": "13.1.0",
     "eslint": "7.32.0",
     "eslint-plugin-sort-imports-es6-autofix": "0.6.0",
-    "husky": "7.0.1",
+    "husky": "7.0.2",
     "koa": "2.13.1",
     "koa-bodyparser": "4.3.0",
     "koa-route": "3.2.0",
