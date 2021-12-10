@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "debug": "^4.3.2",
-    "got": "^11.8.2",
+    "got": "^12.0.0",
     "tough-cookie": "^4.0.0"
   },
   "devDependencies": {
