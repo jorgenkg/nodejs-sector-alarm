@@ -1,15 +1,13 @@
 {
   "compilerOptions": {
     "target": "ES2019",
-    "module": "commonjs",
+    "module": "CommonJS",
     "outDir": "./dist",
     "strict": true,
     "moduleResolution": "node",
+    "esModuleInterop": true,
     "inlineSourceMap": true,
     "inlineSources": true,
-    "lib": [
-      "es2019"
-    ]
   },
   "include": [
     "index.ts",

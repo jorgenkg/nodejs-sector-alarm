@@ -1,5 +1,3 @@
-import * as FakeTimer from "@sinonjs/fake-timers";
-import * as test from "tape";
 import {
   compose,
   defaults,
@@ -7,6 +5,8 @@ import {
   withMockedSectorApi
 } from "../test-helpers/index.js";
 import { Middleware } from "../test-helpers/compose-types.js";
+import FakeTimer from "@sinonjs/fake-timers";
+import test from "tape";
 
 const clock = FakeTimer.createClock(0, Infinity);
 

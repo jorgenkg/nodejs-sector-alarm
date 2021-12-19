@@ -1,16 +1,16 @@
-import * as bodyParser from "koa-bodyparser";
-import * as crypto from "crypto";
-import * as http from "http";
-import * as Koa from "koa";
-import * as Route from "koa-route";
-import * as tape from "tape";
-import * as util from "util";
 import { GetPanelResponse } from "../../lib/@types/GetPanelResponse";
 import { Middleware, TestComposer } from "./compose-types.js";
 import { PanelListResponse } from "../../lib/@types/PanelListResponse";
 import { PanelOverviewResponse } from "../../lib/@types/PanelOverviewResponse";
 import { SectorApi } from "../../lib/SectorApi";
 import { UserInfoResponse } from "../../lib/@types/UserInfoResponse";
+import bodyParser from "koa-bodyparser";
+import crypto from "crypto";
+import http from "http";
+import Koa from "koa";
+import Route from "koa-route";
+import tape from "tape";
+import util from "util";
 import type { Configuration } from "../../lib/config/default.js";
 
 const TWENTY_MINUTES_MS = 1000 * 60 * 20;
@@ -55,29 +55,29 @@ export function withApi(configuration: Configuration<true>, {
 }
 
 class MockedSectorApi extends Koa {
-    private __RequestVerificationToken = crypto.randomBytes(8).toString("hex");
-    private Login__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
-    private ASPXAUTH = crypto.randomBytes(960).toString("hex");
-    private configuration: Configuration<true>;
+  private __RequestVerificationToken = crypto.randomBytes(8).toString("hex");
+  private Login__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
+  private ASPXAUTH = crypto.randomBytes(960).toString("hex");
+  private configuration: Configuration<true>;
 
-    constructor(config: Configuration<true>, {
-      PanelId,
-      ArmedStatus,
-      UpdatedTermsRequired,
-      displayName,
-      quickArm,
-      userID,
-      password,
-      panelCode,
-    }: Configuration<true>["mockData"]) {
-      super();
-      this.configuration = config;
+  constructor(config: Configuration<true>, {
+    PanelId,
+    ArmedStatus,
+    UpdatedTermsRequired,
+    displayName,
+    quickArm,
+    userID,
+    password,
+    panelCode,
+  }: Configuration<true>["mockData"]) {
+    super();
+    this.configuration = config;
 
-      this.use(
-        Route.get(this.configuration.sectorAlarm.endpoints.login, ctx => {
-          ctx.cookies.set("__RequestVerificationToken", this.__RequestVerificationToken, { httpOnly: true });
-          ctx.response.type = "html";
-          ctx.response.body = `
+    this.use(
+      Route.get(this.configuration.sectorAlarm.endpoints.login, ctx => {
+        ctx.cookies.set("__RequestVerificationToken", this.__RequestVerificationToken, { httpOnly: true });
+        ctx.response.type = "html";
+        ctx.response.body = `
           <!DOCTYPE html>
 <html>
 <head>
@@ -225,79 +225,157 @@ class MockedSectorApi extends Koa {
     <!-- End of LiveChat code -->
 </body>
 </html>`;
-        })
-      );
+      })
+    );
 
-      this.use(Route.all("*", async(ctx, path, next: Koa.Next) => {
-        if(ctx.cookies.get("__RequestVerificationToken") !== this.__RequestVerificationToken) {
-          ctx.response.status = 401;
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-          ctx.response.body = { message: `The request cookies did not contain a valid __RequestVerificationToken. Was '${ctx.cookies.get("__RequestVerificationToken")}', should be '${this.__RequestVerificationToken}'` };
-          return;
-        }
-        await next();
-      }));
+    this.use(Route.all("*", async(ctx, path, next: Koa.Next) => {
+      if(ctx.cookies.get("__RequestVerificationToken") !== this.__RequestVerificationToken) {
+        ctx.response.status = 401;
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+        ctx.response.body = { message: `The request cookies did not contain a valid __RequestVerificationToken. Was '${ctx.cookies.get("__RequestVerificationToken")}', should be '${this.__RequestVerificationToken}'` };
+        return;
+      }
+      await next();
+    }));
 
-      this.use(bodyParser());
+    this.use(bodyParser());
 
-      this.use(
-        Route.post(this.configuration.sectorAlarm.endpoints.login, ctx => {
-          const body = ctx.request.body as {
+    this.use(
+      Route.post(this.configuration.sectorAlarm.endpoints.login, ctx => {
+        const body = ctx.request.body as {
             __RequestVerificationToken: string;
             userID: string;
             password: string;
           };
 
-          if(ctx.request.headers["content-type"] !== "application/x-www-form-urlencoded") {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "The request sent data using the wrong content type" };
-            return;
-          }
-          else if(body.__RequestVerificationToken !== this.Login__RequestVerificationToken) {
-            ctx.response.status = 400;
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-            ctx.response.body = { message: `The request did not present a valid __RequestVerificationToken for login. Should be '${this.Login__RequestVerificationToken}', was: '${body.__RequestVerificationToken}'` };
-            return;
-          }
-          else if(body.userID !== userID) {
-            // The Sector API will return 200 OK with an error message, and without setting the ASPX cookie
-            ctx.response.status = 200;
-            ctx.response.body = { message: "The request did not present a valid userID/email" };
-            this.configuration.logger.warn("The request did not specify a valid userID/email");
-            return;
-          }
-          else if(body.password !== password) {
-            // The Sector API will return 200 OK with an error message, and without setting the ASPX cookie
-            ctx.response.status = 200;
-            ctx.response.body = { message: "The request did not present a valid password" };
-            this.configuration.logger.warn("The request did not specify a valid password");
-            return;
-          }
-          else {
-            // Set the authentication cookie
-            ctx.cookies.set(".ASPXAUTH", this.ASPXAUTH, {
-              expires: new Date(this.configuration.clock.Date.now() + TWENTY_MINUTES_MS),
-              httpOnly: true
-            });
-
-            ctx.response.status = 200;
-          }
-        })
-      );
-
-      // Verify the presence of an authentication cookie
-      this.use(Route.all("*", async(ctx, path, next: Koa.Next) => {
-        if(ctx.cookies.get(".ASPXAUTH") !== this.ASPXAUTH) {
-          ctx.response.status = 401;
-          ctx.response.body = "Wrong or missing authentication cookie";
+        if(ctx.request.headers["content-type"] !== "application/x-www-form-urlencoded") {
+          ctx.response.status = 400;
+          ctx.response.body = { message: "The request sent data using the wrong content type" };
           return;
         }
-        await next();
-      }));
+        else if(body.__RequestVerificationToken !== this.Login__RequestVerificationToken) {
+          ctx.response.status = 400;
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          ctx.response.body = { message: `The request did not present a valid __RequestVerificationToken for login. Should be '${this.Login__RequestVerificationToken}', was: '${body.__RequestVerificationToken}'` };
+          return;
+        }
+        else if(body.userID !== userID) {
+          // The Sector API will return 200 OK with an error message, and without setting the ASPX cookie
+          ctx.response.status = 200;
+          ctx.response.body = { message: "The request did not present a valid userID/email" };
+          this.configuration.logger.warn("The request did not specify a valid userID/email");
+          return;
+        }
+        else if(body.password !== password) {
+          // The Sector API will return 200 OK with an error message, and without setting the ASPX cookie
+          ctx.response.status = 200;
+          ctx.response.body = { message: "The request did not present a valid password" };
+          this.configuration.logger.warn("The request did not specify a valid password");
+          return;
+        }
+        else {
+          // Set the authentication cookie
+          ctx.cookies.set(".ASPXAUTH", this.ASPXAUTH, {
+            expires: new Date(this.configuration.clock.Date.now() + TWENTY_MINUTES_MS),
+            httpOnly: true
+          });
 
-      this.use(
-        Route.get(this.configuration.sectorAlarm.endpoints.getPanelList, ctx => {
-          ctx.response.body = [{
+          ctx.response.status = 200;
+        }
+      })
+    );
+
+    // Verify the presence of an authentication cookie
+    this.use(Route.all("*", async(ctx, path, next: Koa.Next) => {
+      if(ctx.cookies.get(".ASPXAUTH") !== this.ASPXAUTH) {
+        ctx.response.status = 401;
+        ctx.response.body = "Wrong or missing authentication cookie";
+        return;
+      }
+      await next();
+    }));
+
+    this.use(
+      Route.get(this.configuration.sectorAlarm.endpoints.getPanelList, ctx => {
+        ctx.response.body = [{
+          "PanelId": PanelId,
+          "ArmedStatus": ArmedStatus,
+          "PanelDisplayName": displayName,
+          "StatusAnnex": "unknown",
+          "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
+          "AnnexAvalible": false,
+          "IVDisplayStatus": false,
+          "DisplayWizard": false,
+          "BookedStartDate": `/Date(-${this.configuration.clock.Date.now()})/`,
+          "BookedEndDate": `/Date(-${this.configuration.clock.Date.now()})/`,
+          "InstallationStatus": 3,
+          "InstallationAddress": null,
+          "WizardStep": 0,
+          "AccessGroup": 1,
+          "SessionExpires": `/Date(${this.configuration.clock.Date.now() + 1000 * 60 * 24})/`,
+          "IsOnline": false
+        }] as PanelListResponse;
+      })
+    );
+
+    this.use(
+      Route.get(this.configuration.sectorAlarm.endpoints.getUserInfo, ctx => {
+        ctx.body = {
+          "userNation": 2,
+          "Roles": [
+            "User"
+          ],
+          "language": "nb",
+          "culture": "nb-NO",
+          "impersonation": false,
+          "NationHasCRM": true,
+          "NationUseIrCam": true,
+          "NationCanAddSmartPlug": false,
+          "CustomerNo": "12345678",
+          "CSNumber": "000 12345",
+          "UpdatedTermsRequired": UpdatedTermsRequired,
+          "unreadMessages": 0,
+          "TotalMessages": 0
+        } as UserInfoResponse;
+      })
+    );
+
+    this.use(
+      Route.post(this.configuration.sectorAlarm.endpoints.getOverview, ctx => {
+        const body = ctx.request.body as {
+            PanelId: string;
+            Version: string;
+          };
+
+        if(body.PanelId !== PanelId) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: "The request did not present a valid PanelId" };
+          return;
+        }
+        else if(body.Version !== this.configuration.sectorAlarm.version) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: "The request did not present a valid version number" };
+          return;
+        }
+
+        ctx.body = {
+          "Panel": {
+            "PartialAvalible": true,
+            "PanelQuickArm": quickArm,
+            "PanelCodeLength": 4,
+            "LockLanguage": 1,
+            "SupportsApp": true,
+            "SupportsInterviewServices": true,
+            "SupportsPanelUsers": true,
+            "SupportsTemporaryPanelUsers": true,
+            "SupportsRegisterDevices": true,
+            "CanAddDoorLock": false,
+            "CanAddSmartPlug": false,
+            "HasVideo": false,
+            "Wifi": {
+              "WifiExist": false,
+              "Serial": ""
+            },
             "PanelId": PanelId,
             "ArmedStatus": ArmedStatus,
             "PanelDisplayName": displayName,
@@ -306,78 +384,171 @@ class MockedSectorApi extends Koa {
             "AnnexAvalible": false,
             "IVDisplayStatus": false,
             "DisplayWizard": false,
-            "BookedStartDate": `/Date(-${this.configuration.clock.Date.now()})/`,
-            "BookedEndDate": `/Date(-${this.configuration.clock.Date.now()})/`,
+            "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+            "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
             "InstallationStatus": 3,
             "InstallationAddress": null,
             "WizardStep": 0,
-            "AccessGroup": 1,
-            "SessionExpires": `/Date(${this.configuration.clock.Date.now() + 1000 * 60 * 24})/`,
+            "AccessGroup": 0,
+            "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
             "IsOnline": false
-          }] as PanelListResponse;
-        })
-      );
+          },
+          "Locks": [],
+          "Smartplugs": [],
+          "Temperatures": [
+            {
+              "Id": null,
+              "Label": "Foo sensor name",
+              "SerialNo": "123456E1234",
+              "Temprature": "",
+              "DeviceId": null
+            }
+          ],
+          "Cameras": [],
+          "Photos": [],
+          "Access": [
+            "History",
+            "Directions",
+            "SecurityQuestion",
+            "ContactPersons",
+            "AlarmSystemSettings",
+            "LockSettings",
+            "SmartplugSettings",
+            "Photos",
+            "Smartplugs",
+            "Cameras",
+            "CameraSettings",
+            "PanelUsers",
+            "AddProducts",
+            "AppUserSettings",
+            "PreInstallationSettings"
+          ]
+        } as PanelOverviewResponse;
+      })
+    );
 
-      this.use(
-        Route.get(this.configuration.sectorAlarm.endpoints.getUserInfo, ctx => {
-          ctx.body = {
-            "userNation": 2,
-            "Roles": [
-              "User"
-            ],
-            "language": "nb",
-            "culture": "nb-NO",
-            "impersonation": false,
-            "NationHasCRM": true,
-            "NationUseIrCam": true,
-            "NationCanAddSmartPlug": false,
-            "CustomerNo": "12345678",
-            "CSNumber": "000 12345",
-            "UpdatedTermsRequired": UpdatedTermsRequired,
-            "unreadMessages": 0,
-            "TotalMessages": 0
-          } as UserInfoResponse;
-        })
-      );
+    this.use(
+      Route.post(this.configuration.sectorAlarm.endpoints.getPanel, ctx => {
+        const body = ctx.request.body as GetPanelResponse;
 
-      this.use(
-        Route.post(this.configuration.sectorAlarm.endpoints.getOverview, ctx => {
-          const body = ctx.request.body as {
-            PanelId: string;
-            Version: string;
+        if(body.PanelId !== PanelId) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: "The request did not present a valid PanelId" };
+          return;
+        }
+
+        ctx.body = {
+          "PanelCodeLength": 4,
+          "LockLanguage": 1,
+          "HasAnnex": false,
+          "DisplayWizard": false,
+          "CanAddDoorLock": false,
+          "CanAddSmartplug": false,
+          "CanPartialArm": true,
+          "QuickArmEnabled": quickArm,
+          "SupportsPanelUsers": true,
+          "SupportsTemporaryPanelUsers": true,
+          "SupportsRegisterDevices": true,
+          "InterviewDisplayStatus": false,
+          "PreInstallationWizardDone": false,
+          "CanChangeInstallationDate": false,
+          "WizardStep": 0,
+          "PanelId": PanelId,
+          "DisplayName": "Display name foo",
+          "InstallationAddress": null,
+          "InstallationStatus": 3,
+          "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+          "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
+          "PropertyContact": {
+            "AppUserId": "123456",
+            "FirstName": "John",
+            "LastName": "Doe",
+            "PhoneNumber": "12345678",
+            "AccessGroup": 1,
+            "IsPropertyContact": true,
+            "IsInvite": false,
+            "AddSmartPlugUserOverride": false
+          },
+          "Wifi": null,
+          "HasVideo": false,
+          "Video": 0,
+          "Access": [
+            "History",
+            "Directions",
+            "SecurityQuestion",
+            "ContactPersons",
+            "AlarmSystemSettings",
+            "LockSettings",
+            "SmartplugSettings",
+            "Photos",
+            "Smartplugs",
+            "Cameras",
+            "CameraSettings",
+            "PanelUsers",
+            "AddProducts",
+            "AppUserSettings",
+            "PreInstallationSettings"
+          ],
+          "Locks": [],
+          "Smartplugs": [],
+          "Temperatures": [
+            {
+              "Id": null,
+              "Label": "Foo sensor name",
+              "SerialNo": "123456E1234",
+              "Temprature": "",
+              "DeviceId": null
+            }
+          ],
+          "Photos": []
+        } as GetPanelResponse;
+      })
+    );
+
+    this.use(
+      Route.post(this.configuration.sectorAlarm.endpoints.armPanel, ctx => {
+        const body = ctx.request.body as {
+            ArmCmd: "Disarm"|"Total"|"Partial",
+            HasLocks: false,
+            id: string,
+            PanelCode: string,
           };
 
-          if(body.PanelId !== PanelId) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not present a valid PanelId" };
-            return;
-          }
-          else if(body.Version !== this.configuration.sectorAlarm.version) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not present a valid version number" };
-            return;
-          }
+        if(!("ArmCmd" in body)) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: `The request did not specify ArmCmd: ${JSON.stringify(body)}` };
+          return;
+        }
+        else if(!("HasLocks" in body)) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: `The request did not specify HasLocks: ${JSON.stringify(body)}` };
+          return;
+        }
+        else if(body.PanelCode === "" && quickArm !== true) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: `The request must specify a PanelCode when quick arm isn't enabled: ${JSON.stringify(body)}` };
+          return;
+        }
+        else if(body.PanelCode !== "" && body.PanelCode !== panelCode) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: `The request did not specify the correct PanelCode ${panelCode}: ${JSON.stringify(body)}` };
+          return;
+        }
+        else if(body.id !== PanelId) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: `The request specified an incorrect panelID: ${JSON.stringify(body)}` };
+          return;
+        }
 
+        if(body.ArmCmd === "Partial") {
           ctx.body = {
-            "Panel": {
-              "PartialAvalible": true,
-              "PanelQuickArm": quickArm,
-              "PanelCodeLength": 4,
-              "LockLanguage": 1,
-              "SupportsApp": true,
-              "SupportsInterviewServices": true,
-              "SupportsPanelUsers": true,
-              "SupportsTemporaryPanelUsers": true,
-              "SupportsRegisterDevices": true,
-              "CanAddDoorLock": false,
-              "CanAddSmartPlug": false,
-              "HasVideo": false,
-              "Wifi": {
-                "WifiExist": false,
-                "Serial": ""
-              },
+            "status": "success",
+            "message": null,
+            "time": null,
+            "user": null,
+            "panelData": {
               "PanelId": PanelId,
-              "ArmedStatus": ArmedStatus,
+              "ArmedStatus": "partialarmed",
               "PanelDisplayName": displayName,
               "StatusAnnex": "unknown",
               "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
@@ -389,284 +560,113 @@ class MockedSectorApi extends Koa {
               "InstallationStatus": 3,
               "InstallationAddress": null,
               "WizardStep": 0,
-              "AccessGroup": 0,
-              "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
-              "IsOnline": false
-            },
-            "Locks": [],
-            "Smartplugs": [],
-            "Temperatures": [
-              {
-                "Id": null,
-                "Label": "Foo sensor name",
-                "SerialNo": "123456E1234",
-                "Temprature": "",
-                "DeviceId": null
-              }
-            ],
-            "Cameras": [],
-            "Photos": [],
-            "Access": [
-              "History",
-              "Directions",
-              "SecurityQuestion",
-              "ContactPersons",
-              "AlarmSystemSettings",
-              "LockSettings",
-              "SmartplugSettings",
-              "Photos",
-              "Smartplugs",
-              "Cameras",
-              "CameraSettings",
-              "PanelUsers",
-              "AddProducts",
-              "AppUserSettings",
-              "PreInstallationSettings"
-            ]
-          } as PanelOverviewResponse;
-        })
-      );
-
-      this.use(
-        Route.post(this.configuration.sectorAlarm.endpoints.getPanel, ctx => {
-          const body = ctx.request.body as GetPanelResponse;
-
-          if(body.PanelId !== PanelId) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "The request did not present a valid PanelId" };
-            return;
-          }
-
-          ctx.body = {
-            "PanelCodeLength": 4,
-            "LockLanguage": 1,
-            "HasAnnex": false,
-            "DisplayWizard": false,
-            "CanAddDoorLock": false,
-            "CanAddSmartplug": false,
-            "CanPartialArm": true,
-            "QuickArmEnabled": quickArm,
-            "SupportsPanelUsers": true,
-            "SupportsTemporaryPanelUsers": true,
-            "SupportsRegisterDevices": true,
-            "InterviewDisplayStatus": false,
-            "PreInstallationWizardDone": false,
-            "CanChangeInstallationDate": false,
-            "WizardStep": 0,
-            "PanelId": PanelId,
-            "DisplayName": "Display name foo",
-            "InstallationAddress": null,
-            "InstallationStatus": 3,
-            "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
-            "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
-            "PropertyContact": {
-              "AppUserId": "123456",
-              "FirstName": "John",
-              "LastName": "Doe",
-              "PhoneNumber": "12345678",
               "AccessGroup": 1,
-              "IsPropertyContact": true,
-              "IsInvite": false,
-              "AddSmartPlugUserOverride": false
+              "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
+              "IsOnline": true
             },
-            "Wifi": null,
-            "HasVideo": false,
-            "Video": 0,
-            "Access": [
-              "History",
-              "Directions",
-              "SecurityQuestion",
-              "ContactPersons",
-              "AlarmSystemSettings",
-              "LockSettings",
-              "SmartplugSettings",
-              "Photos",
-              "Smartplugs",
-              "Cameras",
-              "CameraSettings",
-              "PanelUsers",
-              "AddProducts",
-              "AppUserSettings",
-              "PreInstallationSettings"
-            ],
-            "Locks": [],
-            "Smartplugs": [],
-            "Temperatures": [
-              {
-                "Id": null,
-                "Label": "Foo sensor name",
-                "SerialNo": "123456E1234",
-                "Temprature": "",
-                "DeviceId": null
-              }
-            ],
-            "Photos": []
-          } as GetPanelResponse;
-        })
-      );
-
-      this.use(
-        Route.post(this.configuration.sectorAlarm.endpoints.armPanel, ctx => {
-          const body = ctx.request.body as {
-            ArmCmd: "Disarm"|"Total"|"Partial",
-            HasLocks: false,
-            id: string,
-            PanelCode: string,
+            "ReloadLocks": false
           };
+        }
+        else if(body.ArmCmd === "Total") {
+          ctx.body = {
+            "status": "success",
+            "message": null,
+            "time": null,
+            "user": null,
+            "panelData": {
+              "PanelId": PanelId,
+              "ArmedStatus": "armed",
+              "PanelDisplayName": displayName,
+              "StatusAnnex": "unknown",
+              "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
+              "AnnexAvalible": false,
+              "IVDisplayStatus": false,
+              "DisplayWizard": false,
+              "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+              "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
+              "InstallationStatus": 3,
+              "InstallationAddress": null,
+              "WizardStep": 0,
+              "AccessGroup": 1,
+              "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
+              "IsOnline": true
+            },
+            "ReloadLocks": false
+          };
+        }
+        else if(body.ArmCmd === "Disarm") {
+          ctx.body = {
+            "status": "success",
+            "message": null,
+            "time": null,
+            "user": null,
+            "panelData": {
+              "PanelId": PanelId,
+              "ArmedStatus": "disarmed",
+              "PanelDisplayName": displayName,
+              "StatusAnnex": "unknown",
+              "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
+              "AnnexAvalible": false,
+              "IVDisplayStatus": false,
+              "DisplayWizard": false,
+              "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
+              "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
+              "InstallationStatus": 3,
+              "InstallationAddress": null,
+              "WizardStep": 0,
+              "AccessGroup": 1,
+              "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
+              "IsOnline": true
+            },
+            "ReloadLocks": false
+          };
+        }
+        else {
+          throw new Error("Unrecognized ArmCmd");
+        }
+      })
+    );
 
-          if(!("ArmCmd" in body)) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not specify ArmCmd: ${JSON.stringify(body)}` };
-            return;
-          }
-          else if(!("HasLocks" in body)) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not specify HasLocks: ${JSON.stringify(body)}` };
-            return;
-          }
-          else if(body.PanelCode === "" && quickArm !== true) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: `The request must specify a PanelCode when quick arm isn't enabled: ${JSON.stringify(body)}` };
-            return;
-          }
-          else if(body.PanelCode !== "" && body.PanelCode !== panelCode) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not specify the correct PanelCode ${panelCode}: ${JSON.stringify(body)}` };
-            return;
-          }
-          else if(body.id !== PanelId) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: `The request specified an incorrect panelID: ${JSON.stringify(body)}` };
-            return;
-          }
-
-          if(body.ArmCmd === "Partial") {
-            ctx.body = {
-              "status": "success",
-              "message": null,
-              "time": null,
-              "user": null,
-              "panelData": {
-                "PanelId": PanelId,
-                "ArmedStatus": "partialarmed",
-                "PanelDisplayName": displayName,
-                "StatusAnnex": "unknown",
-                "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
-                "AnnexAvalible": false,
-                "IVDisplayStatus": false,
-                "DisplayWizard": false,
-                "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
-                "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
-                "InstallationStatus": 3,
-                "InstallationAddress": null,
-                "WizardStep": 0,
-                "AccessGroup": 1,
-                "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
-                "IsOnline": true
-              },
-              "ReloadLocks": false
-            };
-          }
-          else if(body.ArmCmd === "Total") {
-            ctx.body = {
-              "status": "success",
-              "message": null,
-              "time": null,
-              "user": null,
-              "panelData": {
-                "PanelId": PanelId,
-                "ArmedStatus": "armed",
-                "PanelDisplayName": displayName,
-                "StatusAnnex": "unknown",
-                "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
-                "AnnexAvalible": false,
-                "IVDisplayStatus": false,
-                "DisplayWizard": false,
-                "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
-                "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
-                "InstallationStatus": 3,
-                "InstallationAddress": null,
-                "WizardStep": 0,
-                "AccessGroup": 1,
-                "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
-                "IsOnline": true
-              },
-              "ReloadLocks": false
-            };
-          }
-          else if(body.ArmCmd === "Disarm") {
-            ctx.body = {
-              "status": "success",
-              "message": null,
-              "time": null,
-              "user": null,
-              "panelData": {
-                "PanelId": PanelId,
-                "ArmedStatus": "disarmed",
-                "PanelDisplayName": displayName,
-                "StatusAnnex": "unknown",
-                "PanelTime": `/Date(${this.configuration.clock.Date.now()})/`,
-                "AnnexAvalible": false,
-                "IVDisplayStatus": false,
-                "DisplayWizard": false,
-                "BookedStartDate": `/Date(${this.configuration.clock.Date.now()})/`,
-                "BookedEndDate": `/Date(${this.configuration.clock.Date.now()})/`,
-                "InstallationStatus": 3,
-                "InstallationAddress": null,
-                "WizardStep": 0,
-                "AccessGroup": 1,
-                "SessionExpires": `/Date(${this.configuration.clock.Date.now()})/`,
-                "IsOnline": true
-              },
-              "ReloadLocks": false
-            };
-          }
-          else {
-            throw new Error("Unrecognized ArmCmd");
-          }
-        })
-      );
-
-      this.use(
-        Route.post(this.configuration.sectorAlarm.endpoints.setPanelSettings, ctx => {
-          const body = ctx.request.body as {
+    this.use(
+      Route.post(this.configuration.sectorAlarm.endpoints.setPanelSettings, ctx => {
+        const body = ctx.request.body as {
             displayName?: string,
             panelId?: string,
             quickArm?: boolean,
             systemPassword?: string
           };
 
-          if(body.panelId !== PanelId) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not present a valid PanelId: ${JSON.stringify(body)}` };
-            return;
-          }
-          else if(body.systemPassword !== password) {
-            ctx.response.status = 403;
-            ctx.response.body = { message: `The request did not present a valid systemPassword: ${JSON.stringify(body)}` };
-            return;
-          }
-          else if(!body.displayName === undefined) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not provide a value for [displayName]: ${JSON.stringify(body)}` };
-            return;
-          }
-          else if(body.quickArm === undefined) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: `The request did not provide a value for [quickArm]: ${JSON.stringify(body)}` };
-            return;
-          }
+        if(body.panelId !== PanelId) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: `The request did not present a valid PanelId: ${JSON.stringify(body)}` };
+          return;
+        }
+        else if(body.systemPassword !== password) {
+          ctx.response.status = 403;
+          ctx.response.body = { message: `The request did not present a valid systemPassword: ${JSON.stringify(body)}` };
+          return;
+        }
+        else if(!body.displayName === undefined) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: `The request did not provide a value for [displayName]: ${JSON.stringify(body)}` };
+          return;
+        }
+        else if(body.quickArm === undefined) {
+          ctx.response.status = 400;
+          ctx.response.body = { message: `The request did not provide a value for [quickArm]: ${JSON.stringify(body)}` };
+          return;
+        }
 
-          ctx.body = JSON.stringify("success");
-        })
-      );
-    }
+        ctx.body = JSON.stringify("success");
+      })
+    );
+  }
 
-    public invalidateCookie() {
-      this.__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
-      this.Login__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
-      this.ASPXAUTH = crypto.randomBytes(960).toString("hex");
-    }
+  public invalidateCookie() {
+    this.__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
+    this.Login__RequestVerificationToken = crypto.randomBytes(8).toString("hex");
+    this.ASPXAUTH = crypto.randomBytes(960).toString("hex");
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

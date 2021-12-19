@@ -1,6 +1,6 @@
-import * as assert from "assert";
 import { PanelListResponse } from "../lib/@types/PanelListResponse";
 import { SectorApi } from "../lib/SectorApi.js";
+import assert from "assert";
 
 (async() => {
   assert(process.env.EMAIL, "Expect EMAIL to be defined");
