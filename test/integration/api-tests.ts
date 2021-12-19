@@ -18,15 +18,6 @@ test("It should support authentication with the user credentials", compose(
   }
 ));
 
-test("It should support fetching information about the user credentials", compose(
-  withMockedSectorApi(defaults),
-  withApi(defaults),
-  async(api, t) => {
-    const userInfo = await api.getUserInfo();
-    t.ok(userInfo, "Expected to receive user info");
-  }
-));
-
 test("When the credentials have expired, it should re-authenticate before sending the request", compose(
   (async next => {
     clock.reset();
@@ -38,7 +29,7 @@ test("When the credentials have expired, it should re-authenticate before sendin
   async(api, t) => {
     await api.login();
     await clock.tickAsync("24:00:00");
-    const userInfo = await api.getUserInfo();
+    const userInfo = await api.getPanelList();
     t.ok(userInfo, "Expected to receive user info");
   }
 ));
@@ -48,8 +39,8 @@ test("If the credentials have been revoked, it should re-authenticate before sen
   withApi({ ...defaults, clock: clock as unknown as typeof defaults.clock }),
   async(sector, api, t) => {
     await api.login();
-    sector.invalidateCookie();
-    const userInfo = await api.getUserInfo();
+    sector.invalidateToken();
+    const userInfo = await api.getPanelList();
     t.ok(userInfo, "Expected to receive user info");
   }
 ));
@@ -63,12 +54,13 @@ test("It should support fetching a list of alarm panels", compose(
   }
 ));
 
-test("It should support fetching a panel summary", compose(
+
+test("It should support fetching panel status", compose(
   withMockedSectorApi(defaults),
   withApi(defaults),
   async(api, t) => {
-    const panelSummary = await api.getPanelOverview(defaults.mockData.PanelId);
-    t.equals(panelSummary.Panel.PanelId, defaults.mockData.PanelId, "Expected to receive an overview of a single panel");
+    const panelStatus = await api.getPanelStatus(defaults.mockData.PanelId);
+    t.ok(panelStatus, "Expected to receive panel status");
   }
 ));
 
@@ -81,12 +73,20 @@ test("It should support fetching details about a panel", compose(
   }
 ));
 
+test("It should support fetching temperature measurements from a panel", compose(
+  withMockedSectorApi(defaults),
+  withApi(defaults),
+  async(api, t) => {
+    const panelDetails = await api.getTemperatures(defaults.mockData.PanelId);
+    t.equals(panelDetails.length, 1, "Expected to receive temperature measurements");
+  }
+));
+
 test("It should support updating the settings of a panel", compose(
   withMockedSectorApi(defaults),
   withApi(defaults),
   async(api, t) => {
-    const setPanelSettingsResponse = await api.setPanelSettings(defaults.mockData.PanelId, defaults.mockData.displayName, true);
-    t.equals(setPanelSettingsResponse, "success", "Expected to receive a 'success' reply");
+    await api.setPanelSettings(defaults.mockData.PanelId, defaults.mockData.displayName, true);
   }
 ));
 
@@ -120,7 +120,7 @@ test("It should support arming the alarm without specifying the panel code if 'Q
   withMockedSectorApi({ ...defaults, mockData: { ...defaults.mockData, quickArm: true } }),
   withApi(defaults),
   async(api, t) => {
-    await api.changeAlarmState(defaults.mockData.PanelId, "Total");
+    await api.changeAlarmState(defaults.mockData.PanelId, "Partial");
     t.pass("Expected the call not to throw");
   }
 ));

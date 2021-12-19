@@ -1,4 +1,4 @@
-import { PanelListResponse } from "../lib/@types/PanelListResponse";
+import { GetPanelListResponse } from "../lib/@types/responses/index.js";
 import { SectorApi } from "../lib/SectorApi.js";
 import assert from "assert";
 
@@ -9,6 +9,6 @@ import assert from "assert";
   const api = new SectorApi(process.env.EMAIL, process.env.PASSWORD);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const alarmPanels: PanelListResponse = await api.getPanelList();
+  const alarmPanels: GetPanelListResponse = await api.getPanelList();
 })()
   .catch(console.error);

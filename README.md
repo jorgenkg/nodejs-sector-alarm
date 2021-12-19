@@ -42,6 +42,6 @@ DEBUG=sectoralarm:warn,sectoralarm:error
 ```
 
 ## Disclaimer
-This library is NOT an official integration from Sector Alarm. This library is neither endorsed nor supported by Sector Alarm. This implementation is based on reverse engineering REST calls used by the Sector Alarm web app, and may thus intermittently stop working if the underlying Sector API is updated.
+This library is NOT an official integration from Sector Alarm. This library is neither endorsed nor supported by Sector Alarm. This implementation is based on reverse engineering REST calls used by the Sector Alarm iOS app, and may thus intermittently stop working if the underlying Sector API is updated.
 
 Any utilization, consumption and application of this library is done at the user's own discretion. This library, its maintainers and Sector Alarm cannot guarantee the alarm's integrity if this library or any applications of this library are compromised.

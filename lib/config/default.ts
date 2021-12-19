@@ -5,16 +5,25 @@ export interface Configuration<Test extends boolean = false> {
     host: string;
     /** Only defined for tests */
     port?: number;
-    version: string;
+    additionalHeaders: {
+      ADRUM: "isAjax:true",
+      ADRUM_1: "isMobile:true",
+      version: string,
+      "API-Version":string,
+      Platform:	"iOS",
+      "User-Agent":	"Sector%20Alarm/502 CFNetwork/1325.0.1 Darwin/21.1.0"
+    },
     endpoints: {
       login: string;
-      getUserInfo: string;
-      getOverview: string;
-      getPanel: string;
-      armPanel: string;
       getPanelList: string;
-      setPanelSettings: string;
-    };
+      getPanel: string;
+      getPanelStatus: string;
+      disarm: string;
+      getTemperatures: string;
+      totalArm: string;
+      partialArm: string;
+      setSettings: string;
+    }
   };
   logger: {
     debug: (msg: string, obj?: Record<string, unknown>) => void,
@@ -32,28 +41,40 @@ export interface Configuration<Test extends boolean = false> {
   mockData: Test extends false ? undefined : {
     PanelId: string;
     ArmedStatus: "disarmed" | "armed";
-    UpdatedTermsRequired: boolean;
     displayName: string;
     quickArm: boolean;
     panelCode: string;
     userID: string;
     password: string;
+    ssl: {
+      key: string;
+      cert: string;
+    }
   };
 }
 
 
 export default {
   sectorAlarm: {
-    host: "https://minside.sectoralarm.no/",
-    version: "v1_2_00",
+    host: "https://mypagesapi.sectoralarm.net/",
+    additionalHeaders: {
+      ADRUM: "isAjax:true",
+      ADRUM_1: "isMobile:true",
+      version: "2.7.4",
+      "API-Version": "6",
+      Platform:	"iOS",
+      "User-Agent":	"Sector%20Alarm/502 CFNetwork/1325.0.1 Darwin/21.1.0"
+    },
     endpoints: {
-      login: "/User/Login",
-      getPanelList: "/Panel/GetPanelList/",
-      getUserInfo: "/User/GetUserInfo/",
-      getOverview: "/Panel/GetOverview/",
-      getPanel: "/Panel/GetPanel/",
-      armPanel: "/Panel/ArmPanel/",
-      setPanelSettings: "/Settings/SetPanelSettings/",
+      login: "/api/Login/Login",
+      getPanelList: "/api/Account/GetPanelList",
+      getPanel: "/api/Panel/GetPanel", // panelId
+      getPanelStatus: "/api/Panel/GetPanelStatus", // panelId
+      disarm: "/api/Panel/Disarm",
+      getTemperatures: "/api/Panel/GetTemperatures", // panelId
+      totalArm:	"/api/Panel/Arm",
+      partialArm:	"/api/Panel/PartialArm",
+      setSettings: "/api/Settings/SetPanelSettings"
     }
   },
   logger: {

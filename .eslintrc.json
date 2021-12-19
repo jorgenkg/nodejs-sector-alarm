@@ -15,6 +15,8 @@
       "sort-imports-es6-autofix"
     ],
     "rules": {
+      "no-shadow": "off",
+      "@typescript-eslint/no-shadow": ["error"],
       "@typescript-eslint/explicit-function-return-type": "off",
       // Disallows calls to methods of the console object.
       "no-console": "warn",
@@ -140,8 +142,6 @@
           "classes": false
         }
       ],
-      // Do not recreate variables with existing/identical names
-      "no-shadow": "error",
       // Remove trailing whitespaces immediately, rather than possibly having unnecessary one-line changes in git later
       "no-trailing-spaces": "warn",
       // Require trailing commas on multiline array and objects
