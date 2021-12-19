@@ -1,14 +1,15 @@
-import {
+import { Configuration } from "./@types/Configuration";
+import { deepMerge } from "./misc/deepMerge.js";
+import { default as DefaultConfiguration } from "./config/default.js";
+import { URL } from "url";
+import got from "got";
+import type {
   ArmRequest,
   DisarmRequest, LoginRequest, PartialArmRequest, SetPanelSettingsRequest
 } from "./@types/requests/index.js";
-import { Configuration, default as DefaultConfiguration } from "./config/default.js";
-import { deepMerge } from "./misc/deepMerge.js";
-import {
+import type {
   GetPanelListResponse, GetPanelResponse, GetPanelStatusResponse, GetTemperaturesResponse, LoginResponse
 } from "./@types/responses/index.js";
-import { URL } from "url";
-import got from "got";
 
 
 /**
@@ -154,6 +155,7 @@ export class SectorApi<Test extends boolean = false> {
     return this.httpRequest<GetPanelListResponse>({ endpoint: "getPanelList" });
   }
 
+  /** Request panel arm status. */
   public async getPanelStatus(panelId: string): Promise<GetPanelStatusResponse> {
     return this.httpRequest<GetPanelStatusResponse>({
       endpoint: "getPanelStatus",
@@ -169,7 +171,7 @@ export class SectorApi<Test extends boolean = false> {
     });
   }
 
-  /** Fetch details about the support features of an alarm panel. */
+  /** Fetch temperature measurements from the devices connected to the panel. */
   public async getTemperatures(panelId: string): Promise<GetTemperaturesResponse> {
     return this.httpRequest<GetTemperaturesResponse>({
       endpoint: "getTemperatures",
@@ -198,28 +200,40 @@ export class SectorApi<Test extends boolean = false> {
   }
 
   /** Change the state of an alarm panel. The function returns once the alarm has confirmed the state change.
-   * The call throws if 1) the panel code is incorrect 2) the underlying API version has changed.  */
+   * The call throws if 1) the panel code is incorrect 2) The panel is offline 3) the underlying API version has changed.  */
   public async changeAlarmState(panelId: string, command: "Disarm" | "Total" | "Partial", panelCode?: string): Promise<void> {
     if (command === "Disarm" && panelCode === undefined) {
       throw new Error("Panel code must be specified when disarming the alarm");
     }
 
-    const panel = await this.getPanelDetails(panelId);
+    const status = await this.getPanelStatus(panelId);
 
-    if (panelCode === undefined && !panel.QuickArmEnabled) {
+    const mustLoadPanelDetails =
+      // To verify whether quick-arming is enabled
+      panelCode === undefined ||
+      // To verify if the panel supports partial arming
+      command === "Partial";
+
+    const panel = mustLoadPanelDetails ? await this.getPanelDetails(panelId) : null;
+
+    // Verify whether quick arming is enabled
+    if (panelCode === undefined && panel?.QuickArmEnabled === false) {
       throw new Error("Quick arming not enabled. Panel code must be specified.");
     }
 
-    const status = await this.getPanelStatus(panelId);
+    if (panelCode === undefined && command === "Disarm") {
+      throw new Error("Disarming the alarm requires a code.");
+    }
 
     if(!status.IsOnline) {
       throw new Error("Panel is currently not online.");
     }
 
-    if (command === "Partial" && !panel.CanPartialArm) {
+    if (command === "Partial" && panel?.CanPartialArm === false) {
       throw new Error("Partial arming not supported");
     }
-    else if(command === "Partial") {
+
+    if(command === "Partial") {
       const partialArmRequest: PartialArmRequest = {
         PanelId: panelId,
         Platform: "app",

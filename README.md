@@ -4,7 +4,7 @@ A Sector Alarm SDK written in TypeScript with test coverage using Tape. This is 
 
 ## Requirements
 
-`node >= 12.0`
+`node >= 10.0`
 
 ## Installation
 

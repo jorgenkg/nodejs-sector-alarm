@@ -1,10 +1,3 @@
-import {
-  DisarmRequest, LoginRequest, PartialArmRequest, SetPanelSettingsRequest
-} from "../../lib/@types/requests/index.js";
-import {
-  GetPanelListResponse, GetPanelResponse, GetPanelStatusResponse, GetTemperaturesResponse, LoginResponse
-} from "../../lib/@types/responses/index.js";
-import { Middleware, TestComposer } from "./compose-types.js";
 import { SectorApi } from "../../lib/SectorApi.js";
 import bodyParser from "koa-bodyparser";
 import https from "https";
@@ -12,7 +5,14 @@ import Koa from "koa";
 import Route from "koa-route";
 import tape from "tape";
 import util from "util";
-import type { Configuration } from "../../lib/config/default.js";
+import type { Configuration } from "../../lib/@types/Configuration";
+import type {
+  DisarmRequest, LoginRequest, PartialArmRequest, SetPanelSettingsRequest
+} from "../../lib/@types/requests/index.js";
+import type {
+  GetPanelListResponse, GetPanelResponse, GetPanelStatusResponse, GetTemperaturesResponse, LoginResponse
+} from "../../lib/@types/responses/index.js";
+import type { Middleware, TestComposer } from "./compose-types.js";
 
 
 export const compose: TestComposer = (...composers: unknown[]) => {

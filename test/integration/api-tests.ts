@@ -4,9 +4,9 @@ import {
   withApi,
   withMockedSectorApi
 } from "../test-helpers/index.js";
-import { Middleware } from "../test-helpers/compose-types.js";
 import FakeTimer from "@sinonjs/fake-timers";
 import test from "tape";
+import type { Middleware } from "../test-helpers/compose-types.js";
 
 const clock = FakeTimer.createClock(0, Infinity);
 

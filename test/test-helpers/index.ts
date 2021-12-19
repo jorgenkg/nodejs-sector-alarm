@@ -1,5 +1,5 @@
 import { default as debug } from "debug";
-import type { Configuration } from "../../lib/config/default.js";
+import type { Configuration } from "../../lib/@types/Configuration";
 
 export {
   compose,

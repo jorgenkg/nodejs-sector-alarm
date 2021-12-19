@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as tape from "tape";
+import type * as tape from "tape";
 
 /** An async function performing test setup. The function must await next() before returning */
 export type Middleware<T = undefined> =
