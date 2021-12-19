@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.9...v3.0.0) (2021-12-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate to new Sector API
+
+### Features
+
+* migrate to new Sector API ([0825075](https://github.com/jorgenkg/nodejs-sector-alarm/commit/0825075c5f588da66a7b68b800f0115882be9fa9))
+
 ### [2.0.9](https://github.com/jorgenkg/nodejs-sector-alarm/compare/v2.0.8...v2.0.9) (2021-08-03)
 
 
